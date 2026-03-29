@@ -72,3 +72,24 @@ if(APPLE)
     endif()
   ")
 endif()
+
+if(WIN32)
+  get_target_property(_qt_qmake_executable Qt6::qmake IMPORTED_LOCATION)
+  if(NOT _qt_qmake_executable)
+    message(FATAL_ERROR "Qt6::qmake imported location not found.")
+  endif()
+  get_filename_component(_qt_bin_dir "${_qt_qmake_executable}" DIRECTORY)
+  set(_windeployqt_executable "${_qt_bin_dir}/windeployqt.exe")
+  install(CODE "
+    set(_app \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/massiveedit.exe\")
+    execute_process(
+      COMMAND \"${_windeployqt_executable}\" --no-compiler-runtime --no-translations \"\${_app}\"
+      RESULT_VARIABLE _deploy_result
+      OUTPUT_VARIABLE _deploy_out
+      ERROR_VARIABLE _deploy_err
+    )
+    if(NOT _deploy_result EQUAL 0)
+      message(FATAL_ERROR \"windeployqt failed with code \${_deploy_result}\\n\${_deploy_out}\\n\${_deploy_err}\")
+    endif()
+  ")
+endif()

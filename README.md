@@ -28,6 +28,31 @@ Or use one-command local build + run:
 ./scripts/build_and_run.sh
 ```
 
+Linux:
+
+```bash
+QT_CMAKE_PREFIX_PATH=$HOME/Qt/6.11.0/gcc_64/lib/cmake ./scripts/build_and_run_linux.sh
+```
+
+Build + test only (skip running app):
+
+```bash
+./scripts/build_and_run_linux.sh --no-run
+```
+
+Windows (Command Prompt):
+
+```bat
+set QT_CMAKE_PREFIX_PATH=%USERPROFILE%\Qt\6.11.0\msvc2022_64\lib\cmake
+scripts\build_and_run.bat
+```
+
+Build + test only (skip running app):
+
+```bat
+scripts\build_and_run.bat --no-run
+```
+
 ## macOS Package (DMG)
 
 ```bash
@@ -36,6 +61,37 @@ Or use one-command local build + run:
 
 The script tries to generate `DMG` first and always generates a `.tar.gz` fallback package.
 Output files are generated under `build-qt/packages/`.
+
+## Linux Package (DEB/RPM/TGZ)
+
+```bash
+QT_CMAKE_PREFIX_PATH=$HOME/Qt/6.11.0/gcc_64/lib/cmake ./scripts/package_linux.sh
+```
+
+Skip tests:
+
+```bash
+./scripts/package_linux.sh --skip-tests
+```
+
+The script tries `DEB` and `RPM` when required tools exist, and always generates a `.tar.gz` fallback package.
+Output files are generated under `build-qt/packages/`.
+
+## Windows Package (NSIS/ZIP)
+
+```bat
+set QT_CMAKE_PREFIX_PATH=%USERPROFILE%\Qt\6.11.0\msvc2022_64\lib\cmake
+scripts\package_windows.bat
+```
+
+Skip tests:
+
+```bat
+scripts\package_windows.bat --skip-tests
+```
+
+The script tries `NSIS` when `makensis` is available, and always generates a `.zip` fallback package.
+Output files are generated under `build-qt\packages\`.
 
 ## Current Status
 

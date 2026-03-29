@@ -13,6 +13,7 @@ class QFocusEvent;
 class QInputMethodEvent;
 class QMouseEvent;
 class QPoint;
+class QFontMetrics;
 
 namespace massiveedit::ui {
 
@@ -75,6 +76,12 @@ signals:
   [[nodiscard]] QString expandTabsForDisplay(const QString& text) const;
   [[nodiscard]] std::size_t visualColumnForBufferColumn(const QString& text, std::size_t column) const;
   [[nodiscard]] std::size_t bufferColumnForVisualColumn(const QString& text, std::size_t visual_column) const;
+  [[nodiscard]] int xForBufferColumn(const QString& text,
+                                     std::size_t column,
+                                     const QFontMetrics& metrics) const;
+  [[nodiscard]] std::size_t bufferColumnForPixelX(const QString& text,
+                                                  int x,
+                                                  const QFontMetrics& metrics) const;
   [[nodiscard]] QString cursorLineText() const;
   [[nodiscard]] bool cursorOffset(std::uint64_t* offset) const;
   [[nodiscard]] bool removeLineBreakBeforeCursor();

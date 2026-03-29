@@ -10,6 +10,7 @@
 #include <QClipboard>
 #include <QContextMenuEvent>
 #include <QFocusEvent>
+#include <QFontMetrics>
 #include <QGuiApplication>
 #include <QInputMethod>
 #include <QInputMethodEvent>
@@ -398,7 +399,7 @@ void LargeFileView::paintEvent(QPaintEvent* event) {
 
   const int line_height = fontMetrics().lineSpacing();
   const int text_baseline = fontMetrics().ascent();
-  const int mono_width = std::max(1, fontMetrics().horizontalAdvance(QLatin1Char('M')));
+  const QFontMetrics metrics = fontMetrics();
   const int visible_lines = std::max(1, viewport()->height() / line_height + 1);
   const std::size_t visible_line_count = static_cast<std::size_t>(visible_lines);
 
@@ -503,10 +504,9 @@ void LargeFileView::paintEvent(QPaintEvent* event) {
         const std::size_t sel_end_col = columnForOffset(clamped_end);
 
         if (sel_end_col > sel_start_col) {
-          const std::size_t sel_start_visual = visualColumnForBufferColumn(text, sel_start_col);
-          const std::size_t sel_end_visual = visualColumnForBufferColumn(text, sel_end_col);
-          const int start_x = text_x + static_cast<int>(sel_start_visual) * mono_width;
-          const int width = std::max(2, static_cast<int>(sel_end_visual - sel_start_visual) * mono_width);
+          const int start_x = text_x + xForBufferColumn(text, sel_start_col, metrics);
+          const int end_x = text_x + xForBufferColumn(text, sel_end_col, metrics);
+          const int width = std::max(2, end_x - start_x);
           painter.fillRect(start_x, row_top + 1, width, line_height, colors.selection);
         }
       }
@@ -522,10 +522,9 @@ void LargeFileView::paintEvent(QPaintEvent* event) {
       const std::size_t clamped_len = std::max<std::size_t>(
           1, std::min<std::size_t>(active_match_length_, available == 0 ? 1 : available));
       const std::size_t clamped_end_col = clamped_col + clamped_len;
-      const std::size_t start_visual = visualColumnForBufferColumn(text, clamped_col);
-      const std::size_t end_visual = visualColumnForBufferColumn(text, clamped_end_col);
-      const int start_x = text_x + static_cast<int>(start_visual) * mono_width;
-      const int width = std::max(2, static_cast<int>(end_visual - start_visual) * mono_width);
+      const int start_x = text_x + xForBufferColumn(text, clamped_col, metrics);
+      const int end_x = text_x + xForBufferColumn(text, clamped_end_col, metrics);
+      const int width = std::max(2, end_x - start_x);
 
       painter.fillRect(start_x, row_top + 1, width, line_height, colors.match);
     }
@@ -535,8 +534,7 @@ void LargeFileView::paintEvent(QPaintEvent* event) {
     if (line_index == cursor_line_ && hasFocus() && caret_visible_) {
       const std::size_t clamped_col =
           std::min<std::size_t>(cursor_column_, static_cast<std::size_t>(text.size()));
-      const std::size_t caret_visual = visualColumnForBufferColumn(text, clamped_col);
-      const int caret_x = text_x + static_cast<int>(caret_visual) * mono_width;
+      const int caret_x = text_x + xForBufferColumn(text, clamped_col, metrics);
       painter.setPen(colors.caret);
       painter.drawLine(caret_x, row_top + 2, caret_x, row_top + line_height - 2);
       painter.setPen(colors.text);
@@ -890,19 +888,18 @@ QVariant LargeFileView::inputMethodQuery(Qt::InputMethodQuery query) const {
     }
     case Qt::ImCursorRectangle: {
       const int line_height = std::max(1, fontMetrics().lineSpacing());
-      const int mono_width = std::max(1, fontMetrics().horizontalAdvance(QLatin1Char('M')));
+      const QFontMetrics metrics = fontMetrics();
       const QString line_text = cursorLineText();
       const std::size_t line_len =
           line_text.isNull() ? 0 : static_cast<std::size_t>(line_text.size());
       const std::size_t clamped_col = std::min<std::size_t>(cursor_column_, line_len);
-      const std::size_t caret_visual = visualColumnForBufferColumn(line_text, clamped_col);
-      const int caret_x = textOriginX() + static_cast<int>(caret_visual) * mono_width;
+      const int caret_x = textOriginX() + xForBufferColumn(line_text, clamped_col, metrics);
       const std::size_t visual_row = (cursor_line_ >= top_line_) ? (cursor_line_ - top_line_) : 0;
       const int row = (visual_row > static_cast<std::size_t>(std::numeric_limits<int>::max()))
                           ? std::numeric_limits<int>::max()
                           : static_cast<int>(visual_row);
       const int caret_y = row * line_height;
-      const int caret_width = std::max(1, mono_width / 10);
+      const int caret_width = std::max(1, metrics.horizontalAdvance(QLatin1Char(' ')) / 8);
       const QRect viewport_rect(caret_x, caret_y, caret_width, line_height);
       const QPoint widget_top_left = viewport()->mapTo(this, viewport_rect.topLeft());
       return QRect(widget_top_left, viewport_rect.size());
@@ -1189,6 +1186,60 @@ std::size_t LargeFileView::bufferColumnForVisualColumn(const QString& text,
   return static_cast<std::size_t>(text.size());
 }
 
+int LargeFileView::xForBufferColumn(const QString& text,
+                                    std::size_t column,
+                                    const QFontMetrics& metrics) const {
+  const std::size_t clamped = std::min<std::size_t>(column, static_cast<std::size_t>(text.size()));
+  std::size_t visual_column = 0;
+  int x = 0;
+  for (std::size_t i = 0; i < clamped; ++i) {
+    const QChar ch = text.at(static_cast<qsizetype>(i));
+    if (ch == QLatin1Char('\t')) {
+      const std::size_t next_visual = advanceVisualColumn(visual_column, ch, tab_width_spaces_);
+      const std::size_t space_count = next_visual - visual_column;
+      x += metrics.horizontalAdvance(QString(static_cast<qsizetype>(space_count), QLatin1Char(' ')));
+      visual_column = next_visual;
+      continue;
+    }
+    x += metrics.horizontalAdvance(ch);
+    visual_column = advanceVisualColumn(visual_column, ch, tab_width_spaces_);
+  }
+  return x;
+}
+
+std::size_t LargeFileView::bufferColumnForPixelX(const QString& text,
+                                                 int x,
+                                                 const QFontMetrics& metrics) const {
+  if (x <= 0 || text.isEmpty()) {
+    return 0;
+  }
+
+  std::size_t visual_column = 0;
+  int current_x = 0;
+  for (std::size_t i = 0; i < static_cast<std::size_t>(text.size()); ++i) {
+    const QChar ch = text.at(static_cast<qsizetype>(i));
+    int char_width = 0;
+    if (ch == QLatin1Char('\t')) {
+      const std::size_t next_visual = advanceVisualColumn(visual_column, ch, tab_width_spaces_);
+      const std::size_t space_count = next_visual - visual_column;
+      char_width = metrics.horizontalAdvance(QString(static_cast<qsizetype>(space_count), QLatin1Char(' ')));
+      visual_column = next_visual;
+    } else {
+      char_width = metrics.horizontalAdvance(ch);
+      visual_column = advanceVisualColumn(visual_column, ch, tab_width_spaces_);
+    }
+    const int next_x = current_x + std::max(0, char_width);
+    if (x < next_x) {
+      return (x - current_x < next_x - x) ? i : (i + 1);
+    }
+    if (x == next_x) {
+      return i + 1;
+    }
+    current_x = next_x;
+  }
+  return static_cast<std::size_t>(text.size());
+}
+
 QString LargeFileView::cursorLineText() const {
   if (session_ == nullptr) {
     return QString();
@@ -1351,10 +1402,8 @@ bool LargeFileView::positionToLineColumn(const QPoint& position,
   target_line = lines.front().line_index;
 
   const int left_padding = textOriginX();
-  const int mono_width = std::max(1, fontMetrics().horizontalAdvance(QLatin1Char('M')));
   const int x = std::max(0, position.x() - left_padding);
-  const std::size_t visual_col = static_cast<std::size_t>((x + mono_width / 2) / mono_width);
-  const std::size_t approx_col = bufferColumnForVisualColumn(text, visual_col);
+  const std::size_t approx_col = bufferColumnForPixelX(text, x, fontMetrics());
 
   *line = target_line;
   *column = std::min<std::size_t>(approx_col, static_cast<std::size_t>(text.size()));

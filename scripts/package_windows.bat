@@ -1,0 +1,102 @@
+@echo off
+setlocal enabledelayedexpansion
+
+set "SCRIPT_DIR=%~dp0"
+for %%I in ("%SCRIPT_DIR%..") do set "ROOT_DIR=%%~fI"
+
+if not defined BUILD_DIR set "BUILD_DIR=%ROOT_DIR%\build-qt"
+if defined CMAKE_BUILD_TYPE (
+  set "BUILD_TYPE=%CMAKE_BUILD_TYPE%"
+) else (
+  set "BUILD_TYPE=Release"
+)
+
+set "RUN_TESTS=1"
+if /I "%~1"=="--skip-tests" set "RUN_TESTS=0"
+
+if /I not "%OS%"=="Windows_NT" (
+  echo This script only supports Windows.
+  exit /b 1
+)
+
+if defined QT_CMAKE_PREFIX_PATH (
+  set "CMAKE_PREFIX_PATH=%QT_CMAKE_PREFIX_PATH%"
+) else (
+  set "CMAKE_PREFIX_PATH="
+  for /d %%D in ("%USERPROFILE%\Qt\*") do (
+    for %%K in (msvc2022_64 msvc2019_64 mingw_64) do (
+      if exist "%%~fD\%%K\lib\cmake\Qt6\Qt6Config.cmake" (
+        set "CMAKE_PREFIX_PATH=%%~fD\%%K\lib\cmake"
+      )
+    )
+  )
+)
+
+if not defined CMAKE_PREFIX_PATH (
+  echo Failed to find Qt CMake path.
+  echo Set QT_CMAKE_PREFIX_PATH, for example:
+  echo   set QT_CMAKE_PREFIX_PATH=%%USERPROFILE%%\Qt\6.11.0\msvc2022_64\lib\cmake
+  echo   scripts\package_windows.bat
+  exit /b 1
+)
+
+set "PKG_DIR=%BUILD_DIR%\packages"
+if not exist "%PKG_DIR%" mkdir "%PKG_DIR%"
+del /q "%PKG_DIR%\MassiveEdit-*.exe" 2>nul
+del /q "%PKG_DIR%\MassiveEdit-*.zip" 2>nul
+
+echo [1/5] Configure
+cmake -S "%ROOT_DIR%" ^
+  -B "%BUILD_DIR%" ^
+  -DCMAKE_PREFIX_PATH="%CMAKE_PREFIX_PATH%" ^
+  -DCMAKE_BUILD_TYPE="%BUILD_TYPE%" ^
+  -DMASSIVEEDIT_BUILD_TESTS=ON
+if errorlevel 1 exit /b 1
+
+if defined NUMBER_OF_PROCESSORS (
+  set "CORES=%NUMBER_OF_PROCESSORS%"
+) else (
+  set "CORES=8"
+)
+
+echo [2/5] Build (jobs=!CORES!)
+cmake --build "%BUILD_DIR%" --clean-first --config "%BUILD_TYPE%" --parallel !CORES!
+if errorlevel 1 exit /b 1
+
+if "%RUN_TESTS%"=="1" (
+  echo [3/5] Test
+  ctest --test-dir "%BUILD_DIR%" --output-on-failure -C "%BUILD_TYPE%"
+  if errorlevel 1 exit /b 1
+) else (
+  echo [3/5] Skip tests (--skip-tests)
+)
+
+set "NSIS_STATUS=0"
+
+echo [4/5] Package NSIS (if available)
+where makensis >nul 2>nul
+if errorlevel 1 (
+  set "NSIS_STATUS=127"
+  echo Info: makensis not found, skip NSIS.
+) else (
+  cpack --config "%BUILD_DIR%\CPackConfig.cmake" -C "%BUILD_TYPE%" -G NSIS
+  if errorlevel 1 (
+    set "NSIS_STATUS=1"
+    echo Warning: NSIS packaging failed.
+  )
+)
+
+echo [5/5] Package ZIP
+cpack --config "%BUILD_DIR%\CPackConfig.cmake" -C "%BUILD_TYPE%" -G ZIP
+if errorlevel 1 exit /b 1
+
+echo [Done] Package complete
+echo Packages are in: %PKG_DIR%
+dir /b "%PKG_DIR%\MassiveEdit-*"
+
+if "%NSIS_STATUS%"=="1" (
+  echo NSIS installer was not generated in this run.
+)
+
+exit /b 0
+
