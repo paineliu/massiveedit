@@ -1,0 +1,13 @@
+<RCC>
+  <qresource prefix="/icons">
+    <file alias="app_icon_16.png">../resources/icons/app_icon_16.png</file>
+    <file alias="app_icon_24.png">../resources/icons/app_icon_24.png</file>
+    <file alias="app_icon_32.png">../resources/icons/app_icon_32.png</file>
+    <file alias="app_icon_48.png">../resources/icons/app_icon_48.png</file>
+    <file alias="app_icon_64.png">../resources/icons/app_icon_64.png</file>
+    <file alias="app_icon_128.png">../resources/icons/app_icon_128.png</file>
+    <file alias="app_icon_256.png">../resources/icons/app_icon_256.png</file>
+    <file alias="app_icon_512.png">../resources/icons/app_icon_512.png</file>
+    <file alias="app_icon_1024.png">../resources/icons/app_icon_1024.png</file>
+  </qresource>
+</RCC>

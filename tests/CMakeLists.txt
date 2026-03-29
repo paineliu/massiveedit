@@ -1,0 +1,34 @@
+add_executable(piece_table_smoke_test piece_table_smoke_test.cpp)
+target_link_libraries(piece_table_smoke_test PRIVATE massiveedit_core)
+add_test(NAME piece_table_smoke_test COMMAND piece_table_smoke_test)
+
+add_executable(piece_table_streaming_test piece_table_streaming_test.cpp)
+target_link_libraries(piece_table_streaming_test PRIVATE massiveedit_core)
+add_test(NAME piece_table_streaming_test COMMAND piece_table_streaming_test)
+
+add_executable(line_indexer_offset_test line_indexer_offset_test.cpp)
+target_link_libraries(line_indexer_offset_test PRIVATE massiveedit_core)
+add_test(NAME line_indexer_offset_test COMMAND line_indexer_offset_test)
+
+add_executable(document_session_replace_test document_session_replace_test.cpp)
+target_link_libraries(document_session_replace_test PRIVATE massiveedit_core)
+add_test(NAME document_session_replace_test COMMAND document_session_replace_test)
+
+add_executable(document_session_offset_test document_session_offset_test.cpp)
+target_link_libraries(document_session_offset_test PRIVATE massiveedit_core)
+add_test(NAME document_session_offset_test COMMAND document_session_offset_test)
+
+add_executable(document_session_operation_log_test document_session_operation_log_test.cpp)
+target_link_libraries(document_session_operation_log_test PRIVATE massiveedit_core)
+add_test(NAME document_session_operation_log_test COMMAND document_session_operation_log_test)
+
+add_executable(large_file_view_delete_behavior_test
+  large_file_view_delete_behavior_test.cpp
+  ${PROJECT_SOURCE_DIR}/src/ui/large_file_view.cpp
+  ${PROJECT_SOURCE_DIR}/src/ui/i18n.cpp
+  ${PROJECT_SOURCE_DIR}/include/massiveedit/ui/large_file_view.h
+  ${PROJECT_SOURCE_DIR}/include/massiveedit/ui/i18n.h
+)
+target_link_libraries(large_file_view_delete_behavior_test PRIVATE massiveedit_core Qt6::Gui Qt6::Widgets)
+target_include_directories(large_file_view_delete_behavior_test PRIVATE ${PROJECT_SOURCE_DIR}/include)
+add_test(NAME large_file_view_delete_behavior_test COMMAND large_file_view_delete_behavior_test)
