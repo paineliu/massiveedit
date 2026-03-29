@@ -43,7 +43,7 @@ Build + test only (skip running app):
 Windows (Command Prompt):
 
 ```bat
-set QT_CMAKE_PREFIX_PATH=%USERPROFILE%\Qt\6.11.0\msvc2022_64\lib\cmake
+set QT_CMAKE_PREFIX_PATH=%USERPROFILE%\Qt\6.11.0\msvc2022_arm64\lib\cmake
 scripts\build_and_run.bat
 ```
 
@@ -80,7 +80,7 @@ Output files are generated under `build-qt/packages/`.
 ## Windows Package (NSIS/ZIP)
 
 ```bat
-set QT_CMAKE_PREFIX_PATH=%USERPROFILE%\Qt\6.11.0\msvc2022_64\lib\cmake
+set QT_CMAKE_PREFIX_PATH=%USERPROFILE%\Qt\6.11.0\msvc2022_arm64\lib\cmake
 scripts\package_windows.bat
 ```
 
