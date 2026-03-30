@@ -140,9 +140,12 @@ if "%RUN_TESTS%"=="1" (
 
 set "NSIS_STATUS=0"
 set "NSIS_EXE="
+set "NSIS_DIR="
+set "PF86=%ProgramFiles(x86)%"
+set "PF64=%ProgramFiles%"
 
 if defined NSIS_ROOT (
-  if exist "%NSIS_ROOT%\makensis.exe" set "NSIS_EXE=%NSIS_ROOT%\makensis.exe"
+  if exist "!NSIS_ROOT!\makensis.exe" set "NSIS_EXE=!NSIS_ROOT!\makensis.exe"
 )
 
 if not defined NSIS_EXE (
@@ -151,15 +154,11 @@ if not defined NSIS_EXE (
 )
 
 if not defined NSIS_EXE (
-  if exist "%ProgramFiles(x86)%\NSIS\makensis.exe" (
-    set "NSIS_EXE=%ProgramFiles(x86)%\NSIS\makensis.exe"
-  )
+  if defined PF86 if exist "!PF86!\NSIS\makensis.exe" set "NSIS_EXE=!PF86!\NSIS\makensis.exe"
 )
 
 if not defined NSIS_EXE (
-  if exist "%ProgramFiles%\NSIS\makensis.exe" (
-    set "NSIS_EXE=%ProgramFiles%\NSIS\makensis.exe"
-  )
+  if defined PF64 if exist "!PF64!\NSIS\makensis.exe" set "NSIS_EXE=!PF64!\NSIS\makensis.exe"
 )
 
 echo [4/5] Package NSIS (if available)
@@ -167,9 +166,13 @@ if not defined NSIS_EXE (
   set "NSIS_STATUS=127"
   echo Info: makensis not found, skip NSIS.
 ) else (
-  for %%I in ("%NSIS_EXE%") do set "NSIS_DIR=%%~dpI"
-  if defined NSIS_DIR set "PATH=%NSIS_DIR%;%PATH%"
-  echo Using NSIS: %NSIS_EXE%
+  if /I "!NSIS_EXE!"=="makensis" (
+    echo Using NSIS from PATH: makensis
+  ) else (
+    for %%I in ("!NSIS_EXE!") do set "NSIS_DIR=%%~dpI"
+    if defined NSIS_DIR set "PATH=!NSIS_DIR!;!PATH!"
+    echo Using NSIS: !NSIS_EXE!
+  )
   cpack --config "%BUILD_DIR%\CPackConfig.cmake" -C "%BUILD_TYPE%" -G NSIS
   if errorlevel 1 (
     set "NSIS_STATUS=1"
