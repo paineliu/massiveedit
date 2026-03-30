@@ -102,6 +102,8 @@ scripts\package_windows.bat --skip-tests
 
 The script tries `NSIS` when `makensis` is available, and always generates a `.zip` fallback package.
 Output files are generated under `build-qt\packages\`.
+NSIS installer behavior is defined in:
+`scripts\installer\massiveedit.nsi`.
 
 ## Current Status
 

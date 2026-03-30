@@ -36,18 +36,13 @@ if defined QT_CMAKE_PREFIX_PATH (
   if "%IS_VS_GENERATOR%"=="1" (
     for /d %%D in ("%USERPROFILE%\Qt\*") do (
       for %%K in (msvc2022_arm64 msvc2022_64 msvc2019_64) do (
-        if exist "%%~fD\%%K\lib\cmake\Qt6\Qt6Config.cmake" (
-          set "CMAKE_PREFIX_PATH=%%~fD\%%K\lib\cmake"
-        )
+        if exist "%%~fD\%%K\lib\cmake\Qt6\Qt6Config.cmake" set "CMAKE_PREFIX_PATH=%%~fD\%%K\lib\cmake"
       )
     )
   ) else (
     for /d %%D in ("%USERPROFILE%\Qt\*") do (
-      for %%K in (msvc2022_arm64 msvc2022_64 msvc2019_64 mingw_64) do (
-        if exist "%%~fD\%%K\lib\cmake\Qt6\Qt6Config.cmake" (
-          set "CMAKE_PREFIX_PATH=%%~fD\%%K\lib\cmake"
-        )
-      )
+      for %%K in (mingw_64 msvc2022_arm64 msvc2022_64 msvc2019_64) do (
+        if exist "%%~fD\%%K\lib\cmake\Qt6\Qt6Config.cmake" set "CMAKE_PREFIX_PATH=%%~fD\%%K\lib\cmake"
       )
     )
   )
@@ -97,11 +92,15 @@ if exist "%QT_BIN_DIR%\Qt6Core.dll" (
 )
 
 set "PKG_DIR=%BUILD_DIR%\packages"
+set "STAGE_DIR=%BUILD_DIR%\stage\%BUILD_TYPE%"
+set "NSIS_SCRIPT=%ROOT_DIR%\scripts\installer\massiveedit.nsi"
+set "NSIS_OUTPUT=%PKG_DIR%\MassiveEdit-Setup.exe"
+
 if not exist "%PKG_DIR%" mkdir "%PKG_DIR%"
 del /q "%PKG_DIR%\MassiveEdit-*.exe" 2>nul
 del /q "%PKG_DIR%\MassiveEdit-*.zip" 2>nul
 
-echo [1/5] Configure
+echo [1/6] Configure
 if "%IS_VS_GENERATOR%"=="1" (
   cmake -S "%ROOT_DIR%" ^
     -B "%BUILD_DIR%" ^
@@ -126,23 +125,33 @@ if defined NUMBER_OF_PROCESSORS (
   set "CORES=8"
 )
 
-echo [2/5] Build (jobs=!CORES!)
+echo [2/6] Build (jobs=!CORES!)
 cmake --build "%BUILD_DIR%" --clean-first --config "%BUILD_TYPE%" --parallel !CORES!
 if errorlevel 1 exit /b 1
 
 if "%RUN_TESTS%"=="1" (
-  echo [3/5] Test
+  echo [3/6] Test
   ctest --test-dir "%BUILD_DIR%" --output-on-failure -C "%BUILD_TYPE%"
   if errorlevel 1 exit /b 1
 ) else (
-  echo [3/5] Skip tests (--skip-tests)
+  echo [3/6] Skip tests (--skip-tests)
+)
+
+echo [4/6] Stage install
+if exist "%STAGE_DIR%" rmdir /s /q "%STAGE_DIR%"
+mkdir "%STAGE_DIR%"
+cmake --install "%BUILD_DIR%" --config "%BUILD_TYPE%" --prefix "%STAGE_DIR%"
+if errorlevel 1 exit /b 1
+
+set "APP_VERSION=0.1.0"
+if exist "%BUILD_DIR%\CMakeCache.txt" (
+  for /f "tokens=2 delims==" %%V in ('findstr /B /C:"massiveedit_VERSION:STATIC=" "%BUILD_DIR%\CMakeCache.txt"') do set "APP_VERSION=%%V"
+  for /f "tokens=2 delims==" %%V in ('findstr /B /C:"CMAKE_PROJECT_VERSION:STATIC=" "%BUILD_DIR%\CMakeCache.txt"') do set "APP_VERSION=%%V"
 )
 
 set "NSIS_STATUS=0"
 set "NSIS_EXE="
 set "NSIS_DIR="
-set "PF86=%ProgramFiles(x86)%"
-set "PF64=%ProgramFiles%"
 
 if defined NSIS_ROOT (
   if exist "!NSIS_ROOT!\makensis.exe" set "NSIS_EXE=!NSIS_ROOT!\makensis.exe"
@@ -154,14 +163,19 @@ if not defined NSIS_EXE (
 )
 
 if not defined NSIS_EXE (
-  if defined PF86 if exist "!PF86!\NSIS\makensis.exe" set "NSIS_EXE=!PF86!\NSIS\makensis.exe"
+  if exist "%ProgramFiles(x86)%\NSIS\makensis.exe" set "NSIS_EXE=%ProgramFiles(x86)%\NSIS\makensis.exe"
 )
 
 if not defined NSIS_EXE (
-  if defined PF64 if exist "!PF64!\NSIS\makensis.exe" set "NSIS_EXE=!PF64!\NSIS\makensis.exe"
+  if exist "%ProgramFiles%\NSIS\makensis.exe" set "NSIS_EXE=%ProgramFiles%\NSIS\makensis.exe"
 )
 
-echo [4/5] Package NSIS (if available)
+echo [5/6] Package NSIS (custom script)
+if not exist "%NSIS_SCRIPT%" (
+  echo Error: NSIS script not found: %NSIS_SCRIPT%
+  exit /b 1
+)
+
 if not defined NSIS_EXE (
   set "NSIS_STATUS=127"
   echo Info: makensis not found, skip NSIS.
@@ -173,14 +187,19 @@ if not defined NSIS_EXE (
     if defined NSIS_DIR set "PATH=!NSIS_DIR!;!PATH!"
     echo Using NSIS: !NSIS_EXE!
   )
-  cpack --config "%BUILD_DIR%\CPackConfig.cmake" -C "%BUILD_TYPE%" -G NSIS
+  "!NSIS_EXE!" ^
+    "/DAPP_NAME=MassiveEdit" ^
+    "/DAPP_VERSION=!APP_VERSION!" ^
+    "/DAPP_STAGE=%STAGE_DIR%" ^
+    "/DOUT_FILE=%NSIS_OUTPUT%" ^
+    "%NSIS_SCRIPT%"
   if errorlevel 1 (
     set "NSIS_STATUS=1"
-    echo Warning: NSIS packaging failed.
+    echo Warning: custom NSIS packaging failed.
   )
 )
 
-echo [5/5] Package ZIP
+echo [6/6] Package ZIP
 cpack --config "%BUILD_DIR%\CPackConfig.cmake" -C "%BUILD_TYPE%" -G ZIP
 if errorlevel 1 exit /b 1
 
@@ -189,7 +208,10 @@ echo Packages are in: %PKG_DIR%
 dir /b "%PKG_DIR%\MassiveEdit-*"
 
 if "%NSIS_STATUS%"=="1" (
-  echo NSIS installer was not generated in this run.
+  echo Custom NSIS installer was not generated in this run.
+)
+if "%NSIS_STATUS%"=="127" (
+  echo NSIS is not installed or not discoverable.
 )
 
 exit /b 0
