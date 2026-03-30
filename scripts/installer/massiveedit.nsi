@@ -23,7 +23,6 @@ InstallDir "$ProgramFiles64\${APP_NAME}"
 InstallDirRegKey HKLM "Software\${APP_NAME}" "InstallDir"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
-SetShellVarContext all
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
@@ -37,6 +36,7 @@ SetShellVarContext all
 !insertmacro MUI_LANGUAGE "English"
 
 Section "Install"
+  SetShellVarContext all
   SetOutPath "$INSTDIR"
   File /r "${APP_STAGE}\*.*"
 
@@ -55,6 +55,7 @@ Section "Install"
 SectionEnd
 
 Section "Uninstall"
+  SetShellVarContext all
   Delete "$SMPROGRAMS\${APP_NAME}.lnk"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir /r "$INSTDIR"
@@ -62,4 +63,3 @@ Section "Uninstall"
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
   DeleteRegKey HKLM "Software\${APP_NAME}"
 SectionEnd
-
