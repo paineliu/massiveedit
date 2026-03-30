@@ -34,6 +34,18 @@ if(APPLE)
   set(CPACK_DMG_VOLUME_NAME "MassiveEdit-${PROJECT_VERSION}")
 elseif(WIN32)
   set(CPACK_GENERATOR "ZIP")
+  # Windows package defaults (versionless install directory).
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "MassiveEdit")
+  set(CPACK_NSIS_PACKAGE_NAME "MassiveEdit")
+  set(CPACK_NSIS_DISPLAY_NAME "MassiveEdit")
+  set(CPACK_NSIS_EXECUTABLES_DIRECTORY "bin")
+  # Do not use CPack default start menu entries.
+  set(CPACK_PACKAGE_EXECUTABLES)
+  # Create a single Start Menu shortcut at root: Start Menu/MassiveEdit.lnk
+  set(CPACK_NSIS_CREATE_ICONS_EXTRA
+      "CreateShortCut '$SMPROGRAMS\\\\MassiveEdit.lnk' '$INSTDIR\\\\bin\\\\massiveedit.exe'\n")
+  set(CPACK_NSIS_DELETE_ICONS_EXTRA
+      "Delete '$SMPROGRAMS\\\\MassiveEdit.lnk'\n")
 else()
   set(CPACK_GENERATOR "TGZ")
 endif()
