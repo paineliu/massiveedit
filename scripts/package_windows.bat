@@ -86,6 +86,16 @@ echo Using Qt CMake path: %CMAKE_PREFIX_PATH%
 echo Using CMake generator: %CMAKE_GENERATOR_NAME%
 if "%IS_VS_GENERATOR%"=="1" echo Using generator platform: %CMAKE_GENERATOR_PLATFORM_NAME%
 
+set "QT_BIN_DIR="
+for %%I in ("%CMAKE_PREFIX_PATH%\..\..") do set "QT_BIN_DIR=%%~fI\bin"
+if exist "%QT_BIN_DIR%\Qt6Core.dll" (
+  set "PATH=%QT_BIN_DIR%;%PATH%"
+  echo Using Qt runtime bin: %QT_BIN_DIR%
+) else (
+  echo Warning: Qt runtime bin not found from CMAKE_PREFIX_PATH.
+  echo   Expected: %QT_BIN_DIR%\Qt6Core.dll
+)
+
 set "PKG_DIR=%BUILD_DIR%\packages"
 if not exist "%PKG_DIR%" mkdir "%PKG_DIR%"
 del /q "%PKG_DIR%\MassiveEdit-*.exe" 2>nul
