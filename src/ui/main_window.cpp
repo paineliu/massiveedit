@@ -25,6 +25,8 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDockWidget>
+#include <QDragEnterEvent>
+#include <QDropEvent>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -40,6 +42,7 @@
 #include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMimeData>
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -55,6 +58,7 @@
 #include <QTabBar>
 #include <QTimer>
 #include <QTreeWidget>
+#include <QUrl>
 #include <QUuid>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -240,6 +244,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
   setWindowTitle(trKey("app.name"));
   resize(1280, 820);
+  setAcceptDrops(true);
 
   QWidget* container = new QWidget(this);
   auto* root_layout = new QVBoxLayout(container);
@@ -396,6 +401,65 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     settings.setValue(QString::fromLatin1(kLastExitCleanKey), true);
   }
   event->accept();
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
+  if (event == nullptr) {
+    return;
+  }
+
+  const QMimeData* mime_data = event->mimeData();
+  if (mime_data == nullptr || !mime_data->hasUrls()) {
+    event->ignore();
+    return;
+  }
+
+  const QList<QUrl> urls = mime_data->urls();
+  for (const QUrl& url : urls) {
+    if (!url.isLocalFile()) {
+      continue;
+    }
+    const QFileInfo info(url.toLocalFile());
+    if (info.exists() && info.isFile()) {
+      event->acceptProposedAction();
+      return;
+    }
+  }
+
+  event->ignore();
+}
+
+void MainWindow::dropEvent(QDropEvent* event) {
+  if (event == nullptr) {
+    return;
+  }
+
+  const QMimeData* mime_data = event->mimeData();
+  if (mime_data == nullptr || !mime_data->hasUrls()) {
+    event->ignore();
+    return;
+  }
+
+  bool opened_any = false;
+  const QList<QUrl> urls = mime_data->urls();
+  for (const QUrl& url : urls) {
+    if (!url.isLocalFile()) {
+      continue;
+    }
+    const QFileInfo info(url.toLocalFile());
+    if (!info.exists() || !info.isFile()) {
+      continue;
+    }
+    if (openFileInNewTab(info.absoluteFilePath())) {
+      opened_any = true;
+    }
+  }
+
+  if (opened_any) {
+    event->acceptProposedAction();
+    return;
+  }
+  event->ignore();
 }
 
 void MainWindow::newTab() {

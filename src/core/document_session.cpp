@@ -50,6 +50,22 @@ std::optional<QStringConverter::Encoding> gbkQtEncoding() {
 constexpr quint32 kOperationLogMagic = 0x4D454F4C;    // MEOL
 constexpr quint32 kOperationLogVersion = 1;
 
+std::filesystem::path qStringToFsPath(const QString& path) {
+#ifdef _WIN32
+  return std::filesystem::path(path.toStdWString());
+#else
+  return std::filesystem::path(path.toStdString());
+#endif
+}
+
+QString fsPathToQString(const std::filesystem::path& path) {
+#ifdef _WIN32
+  return QString::fromStdWString(path.native());
+#else
+  return QString::fromStdString(path.string());
+#endif
+}
+
 }  // namespace
 
 DocumentSession::DocumentSession(QObject* parent)
@@ -76,7 +92,7 @@ bool DocumentSession::openFile(const QString& file_path, QString* error) {
   cancelAllSearches();
 
   std::string native_error;
-  if (!backend_.open(file_path.toStdString(), &native_error)) {
+  if (!backend_.open(qStringToFsPath(file_path), &native_error)) {
     if (error != nullptr) {
       *error = QString::fromStdString(native_error);
     }
@@ -118,8 +134,7 @@ bool DocumentSession::openFromBytes(const QByteArray& bytes,
 
   {
     std::unique_lock<std::shared_mutex> lock(model_mutex_);
-    source_path_ = source_label.isEmpty() ? std::filesystem::path()
-                                          : std::filesystem::path(source_label.toStdString());
+    source_path_ = source_label.isEmpty() ? std::filesystem::path() : qStringToFsPath(source_label);
     chunk_cache_.setBackend(nullptr);
     piece_table_.loadFromOriginalSize(0);
     if (!bytes.isEmpty()) {
@@ -152,7 +167,7 @@ bool DocumentSession::openFromBytes(const QByteArray& bytes,
 }
 
 bool DocumentSession::saveAs(const QString& file_path, QString* error) {
-  std::ofstream out(file_path.toStdString(), std::ios::binary | std::ios::trunc);
+  std::ofstream out(qStringToFsPath(file_path), std::ios::binary | std::ios::trunc);
   if (!out.is_open()) {
     if (error != nullptr) {
       *error = QStringLiteral("Failed to open output path for writing.");
@@ -187,7 +202,7 @@ bool DocumentSession::saveAs(const QString& file_path, QString* error) {
 
   {
     std::unique_lock<std::shared_mutex> lock(model_mutex_);
-    source_path_ = std::filesystem::path(file_path.toStdString());
+    source_path_ = qStringToFsPath(file_path);
     dirty_ = false;
     operation_log_base_is_file_ = true;
     operation_log_base_path_ = source_path_;
@@ -224,7 +239,7 @@ bool DocumentSession::saveOperationLog(const QString& log_path, QString* error) 
   stream << static_cast<qint32>(text_encoding_);
   stream << static_cast<qint32>(line_ending_);
   if (operation_log_base_is_file_) {
-    stream << QString::fromStdString(operation_log_base_path_.string());
+    stream << fsPathToQString(operation_log_base_path_);
   } else {
     stream << QByteArray(operation_log_base_content_.data(),
                          static_cast<qsizetype>(operation_log_base_content_.size()));
@@ -385,7 +400,7 @@ bool DocumentSession::restoreFromOperationLog(const QString& log_path, QString* 
     resetLineIndexLocked();
 
     operation_log_base_is_file_ = base_is_file;
-    operation_log_base_path_ = std::filesystem::path(base_file_path.toStdString());
+    operation_log_base_path_ = qStringToFsPath(base_file_path);
     operation_log_base_content_.assign(base_content.constData(),
                                        static_cast<std::size_t>(base_content.size()));
     operation_log_ops_ = std::move(ops);
@@ -471,7 +486,7 @@ void DocumentSession::removeText(std::uint64_t offset, std::uint64_t length) {
 
 QString DocumentSession::filePath() const {
   std::shared_lock<std::shared_mutex> lock(model_mutex_);
-  return QString::fromStdString(source_path_.string());
+  return fsPathToQString(source_path_);
 }
 
 std::uint64_t DocumentSession::byteSize() const {

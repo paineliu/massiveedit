@@ -3,7 +3,9 @@
 #include <cstdint>
 
 #include <QByteArray>
+#include <QFile>
 #include <QString>
+#include <QTemporaryDir>
 
 #include "massiveedit/core/document_session.h"
 
@@ -49,6 +51,20 @@ int main() {
 
   const QString invalid = session.lineAt(4);
   assert(invalid.isNull());
+
+  // Unicode file paths should open correctly on all platforms (including Windows).
+  QTemporaryDir temp_dir;
+  assert(temp_dir.isValid());
+  const QString unicode_path = temp_dir.filePath(QStringLiteral("五道题网页.sketch"));
+  {
+    QFile out(unicode_path);
+    assert(out.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    assert(out.write("hello\n", 6) == 6);
+    out.close();
+  }
+  QString open_error;
+  assert(session.openFile(unicode_path, &open_error));
+  assert(session.lineAt(0) == QStringLiteral("hello"));
 
   return 0;
 }

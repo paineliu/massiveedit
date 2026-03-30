@@ -18,7 +18,9 @@
 class QCheckBox;
 class QComboBox;
 class QCloseEvent;
+class QDragEnterEvent;
 class QDockWidget;
+class QDropEvent;
 class QFileSystemWatcher;
 class QLabel;
 class QLineEdit;
@@ -40,6 +42,8 @@ class MainWindow : public QMainWindow {
 
  protected:
   void closeEvent(QCloseEvent* event) override;
+  void dragEnterEvent(QDragEnterEvent* event) override;
+  void dropEvent(QDropEvent* event) override;
 
  private slots:
   void newTab();
