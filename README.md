@@ -55,6 +55,12 @@ Build + test only (skip running app):
 scripts\build_and_run.bat --no-run
 ```
 
+Run already-built app:
+
+```bat
+scripts\run_windows.bat
+```
+
 ## macOS Package (DMG)
 
 ```bash
