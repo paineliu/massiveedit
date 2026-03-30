@@ -129,3 +129,7 @@ docs/
 ```
 
 See `docs/architecture.md` for module boundaries and next milestones.
+Website pages:
+`docs/index.html`, `docs/download.html`, `docs/changelog.html`, `docs/privacy.html`,
+`docs/en/index.html`, `docs/en/download.html`, `docs/en/changelog.html`, `docs/en/privacy.html`,
+and language switch logic in `docs/lang.js`.

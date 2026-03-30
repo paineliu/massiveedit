@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MassiveEdit Changelog</title>
+    <meta name="description" content="Version history for MassiveEdit." />
+    <style>
+      :root {
+        --bg: #061020; --bg2: #0f1e38; --panel: rgba(10, 22, 45, 0.78); --line: rgba(115, 156, 214, 0.28);
+        --text: #e8f1ff; --muted: #b2c4e0; --accent: #3fd0b3; --tag: #ffb35b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; color: var(--text);
+        background: radial-gradient(950px 600px at 0% -10%, #1f3f72 0%, transparent 62%), linear-gradient(165deg, var(--bg2), var(--bg));
+        font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+      }
+      a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+      .wrap { width: min(980px, calc(100% - 40px)); margin: 0 auto; }
+      .topbar { padding: 22px 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+      .brand { font-size: 20px; font-weight: 700; }
+      .topnav { display: inline-flex; gap: 14px; flex-wrap: wrap; }
+      .topnav a { color: var(--muted); font-size: 14px; } .topnav a.active { color: var(--text); }
+      h1 { margin: 10px 0 12px; font-size: clamp(30px, 5vw, 50px); }
+      .lead { margin: 0 0 22px; color: var(--muted); line-height: 1.72; }
+      .entry { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 18px 16px; margin-bottom: 14px; }
+      .entry-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+      .entry h2 { margin: 0; font-size: 24px; } .date { color: var(--tag); font-size: 13px; }
+      ul { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.75; }
+      footer { margin-top: 30px; border-top: 1px solid var(--line); padding: 22px 0 36px; color: var(--muted); font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <header class="wrap">
+      <div class="topbar">
+        <div class="brand">MassiveEdit</div>
+        <nav class="topnav">
+          <a href="./index.html">Home</a>
+          <a href="./download.html">Download</a>
+          <a class="active" href="./changelog.html">Changelog</a>
+          <a href="./privacy.html">Privacy</a>
+          <a href="https://github.com/paineliu/massiveedit" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="../changelog.html" data-lang-switch="zh">中</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <h1>Changelog</h1>
+      <p class="lead">GitHub Releases is the source of truth. This page summarizes major changes.</p>
+
+      <article class="entry">
+        <div class="entry-head"><h2>v0.1.3</h2><span class="date">2026-03-30</span></div>
+        <ul>
+          <li>Fixed mojibake in the "app is running" installer prompt on Windows (NSIS script now parsed as UTF-8).</li>
+          <li>Bumped version to 0.1.3 and synchronized installer naming and website labels.</li>
+        </ul>
+      </article>
+
+      <article class="entry">
+        <div class="entry-head"><h2>v0.1.2</h2><span class="date">2026-03-30</span></div>
+        <ul>
+          <li>Windows installer naming updated to <code>MassiveEdit-version-Setup.exe</code>.</li>
+          <li>NSIS install/uninstall now checks whether the app is running and asks the user to retry after closing it.</li>
+          <li>Website static pages launched (Home, Download, Changelog, Privacy).</li>
+        </ul>
+      </article>
+
+      <article class="entry">
+        <div class="entry-head"><h2>v0.1.1</h2><span class="date">2026-03-30</span></div>
+        <ul>
+          <li>Fixed Windows Unicode file path opening by using UTF-16 path conversion.</li>
+          <li>Added drag-and-drop file opening in the main window.</li>
+          <li>Improved Windows executable and installer icon setup.</li>
+        </ul>
+      </article>
+
+      <article class="entry">
+        <div class="entry-head"><h2>v0.1.0</h2><span class="date">2026-03-29</span></div>
+        <ul>
+          <li>First cross-platform usable release with large-file browsing and basic editing.</li>
+          <li>Included find/replace, undo/redo, encoding, and line-ending controls.</li>
+          <li>Provided build/packaging scripts for Windows, macOS, and Linux.</li>
+        </ul>
+      </article>
+    </main>
+
+    <footer class="wrap">
+      <div>Five Questions (Beijing) Technology Co., Ltd.</div>
+      <div><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">京ICP备2025143052号</a></div>
+    </footer>
+    <script src="../lang.js" defer></script>
+  </body>
+</html>

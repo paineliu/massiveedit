@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MassiveEdit - 大文件文本编辑器</title>
+    <meta
+      name="description"
+      content="MassiveEdit 是一款专注性能的大文件文本编辑器，由五道题（北京）科技有限公司开发。"
+    />
+    <style>
+      :root {
+        --bg-0: #06101f;
+        --bg-1: #0f1d35;
+        --panel: rgba(10, 22, 43, 0.72);
+        --line: rgba(104, 149, 214, 0.32);
+        --text: #e6efff;
+        --muted: #b4c5e2;
+        --accent: #44d1b6;
+        --accent-2: #ffb65d;
+        --shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        color: var(--text);
+        background:
+          radial-gradient(1200px 700px at 8% -10%, #1f3e70 0%, transparent 56%),
+          radial-gradient(1100px 700px at 98% 0%, #32456b 0%, transparent 62%),
+          linear-gradient(165deg, var(--bg-1) 0%, var(--bg-0) 65%);
+        font-family: "Avenir Next", "PingFang SC", "Source Han Sans SC", "Noto Sans CJK SC",
+          "Microsoft YaHei", sans-serif;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        padding: 26px 0 58px;
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        width: 320px;
+        height: 320px;
+        right: -120px;
+        top: 36px;
+        border: 1px solid rgba(255, 182, 93, 0.3);
+        border-radius: 42% 58% 56% 44%;
+        filter: blur(0.3px);
+        animation: float 7s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-12px);
+        }
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 50px;
+        gap: 12px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 19px;
+        letter-spacing: 0.4px;
+        font-weight: 650;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--accent), #66ffdf);
+        box-shadow: 0 0 18px rgba(68, 209, 182, 0.9);
+      }
+
+      .topnav {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .topnav a {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .topnav a.active {
+        color: var(--text);
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 28px;
+        align-items: center;
+      }
+
+      .eyebrow {
+        color: var(--accent-2);
+        font-size: 13px;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+
+      h1 {
+        margin: 0 0 14px;
+        font-family: "STZhongsong", "Songti SC", "Noto Serif SC", serif;
+        font-size: clamp(32px, 5.2vw, 58px);
+        line-height: 1.08;
+      }
+
+      .lead {
+        margin: 0 0 26px;
+        color: var(--muted);
+        line-height: 1.75;
+        font-size: 16px;
+      }
+
+      .cta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 11px;
+        border: 1px solid transparent;
+        font-weight: 650;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent), #2dc1f3);
+        color: #02201a;
+      }
+
+      .btn-ghost {
+        color: var(--text);
+        border-color: var(--line);
+        background: rgba(12, 26, 49, 0.42);
+      }
+
+      .hero-panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 22px 20px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(8px);
+      }
+
+      .kpi {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .kpi-item {
+        background: rgba(8, 19, 35, 0.66);
+        border: 1px solid rgba(104, 149, 214, 0.22);
+        border-radius: 12px;
+        padding: 14px;
+      }
+
+      .kpi-item strong {
+        display: block;
+        font-size: 24px;
+        margin-bottom: 4px;
+      }
+
+      section {
+        padding: 38px 0;
+      }
+
+      .title {
+        margin: 0 0 14px;
+        font-size: clamp(26px, 3.6vw, 36px);
+        font-family: "STZhongsong", "Songti SC", "Noto Serif SC", serif;
+      }
+
+      .sub {
+        margin: 0 0 18px;
+        color: var(--muted);
+        line-height: 1.72;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 18px 16px;
+        box-shadow: var(--shadow);
+      }
+
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.68;
+      }
+
+      .contact {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .line {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+      }
+
+      footer {
+        padding: 24px 0 36px;
+        color: var(--muted);
+        font-size: 14px;
+        border-top: 1px solid rgba(104, 149, 214, 0.2);
+      }
+
+      .fade-up {
+        opacity: 0;
+        transform: translateY(12px);
+        animation: fadeUp 0.7s ease forwards;
+      }
+
+      .fade-up.d2 {
+        animation-delay: 0.12s;
+      }
+
+      .fade-up.d3 {
+        animation-delay: 0.2s;
+      }
+
+      @keyframes fadeUp {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 900px) {
+        .hero-grid,
+        .contact,
+        .grid-3 {
+          grid-template-columns: 1fr;
+        }
+        .hero {
+          padding-bottom: 40px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="wrap">
+        <div class="topbar">
+          <div class="brand"><span class="dot"></span>MassiveEdit</div>
+          <nav class="topnav">
+            <a class="active" href="./index.html">首页</a>
+            <a href="./download.html">下载</a>
+            <a href="./changelog.html">更新日志</a>
+            <a href="./privacy.html">隐私政策</a>
+            <a href="https://github.com/paineliu/massiveedit" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="./en/index.html" data-lang-switch="en">EN</a>
+          </nav>
+        </div>
+        <div class="hero-grid">
+          <div>
+            <p class="eyebrow fade-up">Large File Editor</p>
+            <h1 class="fade-up d2">面向超大文本文件的编辑体验</h1>
+            <p class="lead fade-up d3">
+              MassiveEdit 是一款基于 Qt 开发的大文件文本编辑器，强调启动速度、滚动流畅性与稳定编辑能力。<br />
+              由五道题（北京）科技有限公司持续维护与迭代。
+            </p>
+            <div class="cta fade-up d3">
+              <a class="btn btn-primary" href="./download.html">下载发布版本</a>
+              <a class="btn btn-ghost" href="./changelog.html">查看更新日志</a>
+            </div>
+          </div>
+          <aside class="hero-panel fade-up d2">
+            <div class="kpi">
+              <div class="kpi-item">
+                <strong>C++20</strong>
+                <span>核心语言</span>
+              </div>
+              <div class="kpi-item">
+                <strong>Qt 6</strong>
+                <span>跨平台 UI</span>
+              </div>
+              <div class="kpi-item">
+                <strong>MIT</strong>
+                <span>开源协议</span>
+              </div>
+              <div class="kpi-item">
+                <strong>Win / macOS / Linux</strong>
+                <span>平台支持</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section>
+        <h2 class="title">核心能力</h2>
+        <p class="sub">围绕“大文件可读、可搜、可改”设计，优先保障稳定性与响应速度。</p>
+        <div class="grid-3">
+          <article class="card">
+            <h3>大文件高效加载</h3>
+            <p>分块读取与缓存策略，减少整体加载等待，提升打开与滚动体验。</p>
+          </article>
+          <article class="card">
+            <h3>渐进索引与搜索</h3>
+            <p>支持异步检索与结果定位，面向大体量文本保持可操作性。</p>
+          </article>
+          <article class="card">
+            <h3>可靠编辑基础</h3>
+            <p>提供撤销/重做、编码与换行格式管理，为后续能力扩展留足空间。</p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="title">更多信息</h2>
+        <p class="sub">下载、版本演进和政策说明均已独立成页，便于查阅与维护。</p>
+        <div class="grid-3">
+          <article class="card">
+            <h3>下载页面</h3>
+            <p><a href="./download.html">查看各平台安装包</a>、系统要求与安装说明。</p>
+          </article>
+          <article class="card">
+            <h3>更新日志</h3>
+            <p><a href="./changelog.html">查看版本变更记录</a>，快速定位新功能与修复项。</p>
+          </article>
+          <article class="card">
+            <h3>隐私政策</h3>
+            <p><a href="./privacy.html">了解数据处理说明</a>与联系方式。</p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="title">联系与支持</h2>
+        <p class="sub">如需技术支持、商务合作或功能建议，可通过以下方式联系。</p>
+        <div class="contact">
+          <article class="card">
+            <h3>邮箱</h3>
+            <a href="mailto:support@fivequestions.cn">support@fivequestions.cn</a>
+            <span class="line">建议附上系统版本、复现步骤与日志截图。</span>
+          </article>
+          <article class="card">
+            <h3>电话</h3>
+            <a href="tel:+8613661144700">+86 13661144700</a>
+            <span class="line">工作日 9:00-18:00。</span>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div>五道题（北京）科技有限公司</div>
+        <div>
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">京ICP备2025143052号</a>
+        </div>
+      </div>
+    </footer>
+    <script src="./lang.js" defer></script>
+  </body>
+</html>

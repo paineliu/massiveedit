@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MassiveEdit 隐私政策</title>
+    <meta name="description" content="MassiveEdit 隐私政策说明。" />
+    <style>
+      :root {
+        --bg: #071224;
+        --bg2: #0d1f38;
+        --panel: rgba(10, 23, 45, 0.8);
+        --line: rgba(120, 159, 212, 0.3);
+        --text: #e8f0ff;
+        --muted: #b0c2df;
+        --accent: #40d2b5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background:
+          radial-gradient(930px 600px at 2% -12%, #20406e 0%, transparent 62%),
+          linear-gradient(165deg, var(--bg2), var(--bg));
+        font-family: "Avenir Next", "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .wrap {
+        width: min(980px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      .topbar {
+        padding: 22px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand {
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .topnav {
+        display: inline-flex;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .topnav a {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .topnav a.active {
+        color: var(--text);
+      }
+
+      h1 {
+        margin: 10px 0 10px;
+        font-family: "STZhongsong", "Songti SC", "Noto Serif SC", serif;
+        font-size: clamp(30px, 5vw, 50px);
+      }
+
+      .lead {
+        margin: 0 0 20px;
+        color: var(--muted);
+        line-height: 1.74;
+      }
+
+      .policy {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel);
+        padding: 18px 16px;
+      }
+
+      h2 {
+        margin: 0 0 8px;
+        font-size: 21px;
+      }
+
+      p {
+        margin: 0 0 12px;
+        color: var(--muted);
+        line-height: 1.76;
+      }
+
+      .section {
+        padding: 12px 0;
+        border-bottom: 1px dashed rgba(120, 159, 212, 0.25);
+      }
+
+      .section:last-child {
+        border-bottom: none;
+      }
+
+      footer {
+        margin-top: 30px;
+        border-top: 1px solid var(--line);
+        padding: 22px 0 36px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="wrap">
+      <div class="topbar">
+        <div class="brand">MassiveEdit</div>
+        <nav class="topnav">
+          <a href="./index.html">首页</a>
+          <a href="./download.html">下载</a>
+          <a href="./changelog.html">更新日志</a>
+          <a class="active" href="./privacy.html">隐私政策</a>
+          <a href="https://github.com/paineliu/massiveedit" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="./en/privacy.html" data-lang-switch="en">EN</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <h1>隐私政策</h1>
+      <p class="lead">生效日期：2026-03-30</p>
+
+      <article class="policy">
+        <section class="section">
+          <h2>1. 基本说明</h2>
+          <p>
+            MassiveEdit 由五道题（北京）科技有限公司提供。本页面用于说明官网与桌面应用在数据处理方面的基本原则。
+          </p>
+        </section>
+
+        <section class="section">
+          <h2>2. 本地文件处理</h2>
+          <p>
+            MassiveEdit 的核心编辑行为发生在你的本地设备。你打开、编辑和保存的文件默认不会被上传到我们的服务器。
+          </p>
+        </section>
+
+        <section class="section">
+          <h2>3. 官网访问信息</h2>
+          <p>
+            官网托管平台可能记录必要的访问日志（如时间、IP、浏览器类型）用于安全与运维。我们不会将这些数据用于与本服务无关的用途。
+          </p>
+        </section>
+
+        <section class="section">
+          <h2>4. 联系方式信息</h2>
+          <p>
+            当你通过邮箱或电话联系支持时，我们仅在处理问题与回复沟通所需范围内使用你提供的信息。
+          </p>
+        </section>
+
+        <section class="section">
+          <h2>5. 政策更新</h2>
+          <p>如本政策发生变化，我们会在本页面更新版本与生效日期。</p>
+        </section>
+
+        <section class="section">
+          <h2>6. 联系我们</h2>
+          <p>
+            邮箱：<a href="mailto:support@fivequestions.cn">support@fivequestions.cn</a><br />
+            电话：<a href="tel:+8613661144700">+86 13661144700</a>
+          </p>
+        </section>
+      </article>
+    </main>
+
+    <footer class="wrap">
+      <div>五道题（北京）科技有限公司</div>
+      <div><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">京ICP备2025143052号</a></div>
+    </footer>
+    <script src="./lang.js" defer></script>
+  </body>
+</html>

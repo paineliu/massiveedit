@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MassiveEdit - Large File Text Editor</title>
+    <meta
+      name="description"
+      content="MassiveEdit is a high-performance large-file text editor developed by Five Questions (Beijing) Technology Co., Ltd."
+    />
+    <style>
+      :root {
+        --bg-0: #06101f;
+        --bg-1: #0f1d35;
+        --panel: rgba(10, 22, 43, 0.72);
+        --line: rgba(104, 149, 214, 0.32);
+        --text: #e6efff;
+        --muted: #b4c5e2;
+        --accent: #44d1b6;
+        --accent-2: #ffb65d;
+        --shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+      }
+
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        color: var(--text);
+        background:
+          radial-gradient(1200px 700px at 8% -10%, #1f3e70 0%, transparent 56%),
+          radial-gradient(1100px 700px at 98% 0%, #32456b 0%, transparent 62%),
+          linear-gradient(165deg, var(--bg-1) 0%, var(--bg-0) 65%);
+        font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+      }
+
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .wrap { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
+
+      .hero { position: relative; overflow: hidden; padding: 26px 0 58px; }
+      .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; gap: 12px; }
+      .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 19px; letter-spacing: 0.4px; font-weight: 650; }
+      .dot { width: 10px; height: 10px; border-radius: 999px; background: linear-gradient(135deg, var(--accent), #66ffdf); box-shadow: 0 0 18px rgba(68, 209, 182, 0.9); }
+      .topnav { display: inline-flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+      .topnav a { color: var(--muted); font-size: 14px; }
+      .topnav a.active { color: var(--text); }
+
+      .hero-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 28px; align-items: center; }
+      .eyebrow { color: var(--accent-2); font-size: 13px; letter-spacing: 1.4px; text-transform: uppercase; margin-bottom: 10px; }
+      h1 { margin: 0 0 14px; font-size: clamp(32px, 5.2vw, 58px); line-height: 1.08; font-family: "Georgia", "Times New Roman", serif; }
+      .lead { margin: 0 0 26px; color: var(--muted); line-height: 1.75; font-size: 16px; }
+      .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+      .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border-radius: 11px; border: 1px solid transparent; font-weight: 650; }
+      .btn-primary { background: linear-gradient(135deg, var(--accent), #2dc1f3); color: #02201a; }
+      .btn-ghost { color: var(--text); border-color: var(--line); background: rgba(12, 26, 49, 0.42); }
+
+      .hero-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px 20px; box-shadow: var(--shadow); }
+      .kpi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .kpi-item { background: rgba(8, 19, 35, 0.66); border: 1px solid rgba(104, 149, 214, 0.22); border-radius: 12px; padding: 14px; }
+      .kpi-item strong { display: block; font-size: 24px; margin-bottom: 4px; }
+
+      section { padding: 38px 0; }
+      .title { margin: 0 0 14px; font-size: clamp(26px, 3.6vw, 36px); }
+      .sub { margin: 0 0 18px; color: var(--muted); line-height: 1.72; }
+      .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 16px; box-shadow: var(--shadow); }
+      .card h3 { margin: 0 0 8px; font-size: 18px; }
+      .card p { margin: 0; color: var(--muted); line-height: 1.68; }
+      .contact { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      .line { display: block; margin-top: 6px; color: var(--muted); }
+
+      footer { padding: 24px 0 36px; color: var(--muted); font-size: 14px; border-top: 1px solid rgba(104, 149, 214, 0.2); }
+      @media (max-width: 900px) {
+        .hero-grid, .contact, .grid-3 { grid-template-columns: 1fr; }
+        .hero { padding-bottom: 40px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="wrap">
+        <div class="topbar">
+          <div class="brand"><span class="dot"></span>MassiveEdit</div>
+          <nav class="topnav">
+            <a class="active" href="./index.html">Home</a>
+            <a href="./download.html">Download</a>
+            <a href="./changelog.html">Changelog</a>
+            <a href="./privacy.html">Privacy</a>
+            <a href="https://github.com/paineliu/massiveedit" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="../index.html" data-lang-switch="zh">中</a>
+          </nav>
+        </div>
+        <div class="hero-grid">
+          <div>
+            <p class="eyebrow">Large File Editor</p>
+            <h1>Built for Massive Text Files</h1>
+            <p class="lead">
+              MassiveEdit is a Qt-based large-file text editor focused on startup speed, smooth scrolling, and reliable editing behavior.<br />
+              Maintained by Five Questions (Beijing) Technology Co., Ltd.
+            </p>
+            <div class="cta">
+              <a class="btn btn-primary" href="./download.html">Get Downloads</a>
+              <a class="btn btn-ghost" href="./changelog.html">See Changelog</a>
+            </div>
+          </div>
+          <aside class="hero-panel">
+            <div class="kpi">
+              <div class="kpi-item"><strong>C++20</strong><span>Core Language</span></div>
+              <div class="kpi-item"><strong>Qt 6</strong><span>Cross-platform UI</span></div>
+              <div class="kpi-item"><strong>MIT</strong><span>Open-source License</span></div>
+              <div class="kpi-item"><strong>Win / macOS / Linux</strong><span>Platform Coverage</span></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section>
+        <h2 class="title">Core Capabilities</h2>
+        <p class="sub">Designed for readability, search, and editing on very large text files with responsive interaction.</p>
+        <div class="grid-3">
+          <article class="card">
+            <h3>Fast Large-file Loading</h3>
+            <p>Chunked reading and caching reduce full-load wait time and keep scrolling smooth.</p>
+          </article>
+          <article class="card">
+            <h3>Incremental Index & Search</h3>
+            <p>Async search and result navigation keep large datasets practical to work with.</p>
+          </article>
+          <article class="card">
+            <h3>Reliable Editing Base</h3>
+            <p>Undo/redo, encoding controls, and line-ending management provide a stable foundation.</p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="title">More Pages</h2>
+        <p class="sub">Downloads, release history, and privacy details are separated for easy navigation.</p>
+        <div class="grid-3">
+          <article class="card"><h3>Downloads</h3><p><a href="./download.html">Platform packages</a> and installation notes.</p></article>
+          <article class="card"><h3>Changelog</h3><p><a href="./changelog.html">Version changes</a> and fixes.</p></article>
+          <article class="card"><h3>Privacy</h3><p><a href="./privacy.html">Data handling statement</a> and contact info.</p></article>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="title">Contact</h2>
+        <p class="sub">For support, business inquiries, or feature suggestions:</p>
+        <div class="contact">
+          <article class="card">
+            <h3>Email</h3>
+            <a href="mailto:support@fivequestions.cn">support@fivequestions.cn</a>
+            <span class="line">Include OS version, repro steps, and screenshots when possible.</span>
+          </article>
+          <article class="card">
+            <h3>Phone</h3>
+            <a href="tel:+8613661144700">+86 13661144700</a>
+            <span class="line">Business hours: Mon-Fri 9:00-18:00 (UTC+8).</span>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div>Five Questions (Beijing) Technology Co., Ltd.</div>
+        <div><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">京ICP备2025143052号</a></div>
+      </div>
+    </footer>
+    <script src="../lang.js" defer></script>
+  </body>
+</html>

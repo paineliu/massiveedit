@@ -143,7 +143,7 @@ mkdir "%STAGE_DIR%"
 cmake --install "%BUILD_DIR%" --config "%BUILD_TYPE%" --prefix "%STAGE_DIR%"
 if errorlevel 1 exit /b 1
 
-set "APP_VERSION=0.1.2"
+set "APP_VERSION=0.1.3"
 if exist "%BUILD_DIR%\CMakeCache.txt" (
   for /f "tokens=2 delims==" %%V in ('findstr /B /C:"massiveedit_VERSION:STATIC=" "%BUILD_DIR%\CMakeCache.txt"') do set "APP_VERSION=%%V"
   for /f "tokens=2 delims==" %%V in ('findstr /B /C:"CMAKE_PROJECT_VERSION:STATIC=" "%BUILD_DIR%\CMakeCache.txt"') do set "APP_VERSION=%%V"
@@ -193,6 +193,7 @@ if not defined NSIS_EXE (
     echo Using NSIS: !NSIS_EXE!
   )
   "!NSIS_EXE!" ^
+    /INPUTCHARSET UTF8 ^
     "/DAPP_NAME=MassiveEdit" ^
     "/DAPP_VERSION=!APP_VERSION!" ^
     "/DAPP_STAGE=%STAGE_DIR%" ^
