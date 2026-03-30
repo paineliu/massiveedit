@@ -17,12 +17,18 @@ Unicode true
   !error "OUT_FILE is required. Pass /DOUT_FILE=<installer-output-path>"
 !endif
 
+!ifndef APP_ICON
+  !define APP_ICON "..\..\resources\icons\AppIcon.ico"
+!endif
+
 Name "${APP_NAME}"
 OutFile "${OUT_FILE}"
 InstallDir "$ProgramFiles64\${APP_NAME}"
 InstallDirRegKey HKLM "Software\${APP_NAME}" "InstallDir"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
+Icon "${APP_ICON}"
+UninstallIcon "${APP_ICON}"
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
@@ -41,7 +47,7 @@ Section "Install"
   File /r "${APP_STAGE}\*.*"
 
   ; Start Menu root entry only, no folder, no extra uninstall shortcut.
-  CreateShortCut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\bin\massiveedit.exe"
+  CreateShortCut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\bin\massiveedit.exe" "" "$INSTDIR\bin\massiveedit.exe" 0
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 

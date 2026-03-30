@@ -14,13 +14,18 @@ target_include_directories(massiveedit_core PUBLIC ${PROJECT_SOURCE_DIR}/include
 target_link_libraries(massiveedit_core PUBLIC Qt6::Core)
 
 set(MASSIVEEDIT_EXE_KIND)
+set(MASSIVEEDIT_PLATFORM_SOURCES)
 if(WIN32)
   set(MASSIVEEDIT_EXE_KIND WIN32)
+  list(APPEND MASSIVEEDIT_PLATFORM_SOURCES
+    app_icon.rc
+  )
 endif()
 
 add_executable(massiveedit ${MASSIVEEDIT_EXE_KIND}
   main.cpp
   resources.qrc
+  ${MASSIVEEDIT_PLATFORM_SOURCES}
   ui/main_window.cpp
   ui/large_file_view.cpp
   ui/i18n.cpp

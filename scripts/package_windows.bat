@@ -95,6 +95,7 @@ set "PKG_DIR=%BUILD_DIR%\packages"
 set "STAGE_DIR=%BUILD_DIR%\stage\%BUILD_TYPE%"
 set "NSIS_SCRIPT=%ROOT_DIR%\scripts\installer\massiveedit.nsi"
 set "NSIS_OUTPUT=%PKG_DIR%\MassiveEdit-Setup.exe"
+set "NSIS_ICON=%ROOT_DIR%\resources\icons\AppIcon.ico"
 
 if not exist "%PKG_DIR%" mkdir "%PKG_DIR%"
 del /q "%PKG_DIR%\MassiveEdit-*.exe" 2>nul
@@ -175,6 +176,10 @@ if not exist "%NSIS_SCRIPT%" (
   echo Error: NSIS script not found: %NSIS_SCRIPT%
   exit /b 1
 )
+if not exist "%NSIS_ICON%" (
+  echo Error: NSIS icon not found: %NSIS_ICON%
+  exit /b 1
+)
 
 if not defined NSIS_EXE (
   set "NSIS_STATUS=127"
@@ -192,6 +197,7 @@ if not defined NSIS_EXE (
     "/DAPP_VERSION=!APP_VERSION!" ^
     "/DAPP_STAGE=%STAGE_DIR%" ^
     "/DOUT_FILE=%NSIS_OUTPUT%" ^
+    "/DAPP_ICON=%NSIS_ICON%" ^
     "%NSIS_SCRIPT%"
   if errorlevel 1 (
     set "NSIS_STATUS=1"
