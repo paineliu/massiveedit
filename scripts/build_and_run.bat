@@ -14,14 +14,35 @@ if defined CMAKE_BUILD_TYPE (
 set "RUN_APP=1"
 if /I "%~1"=="--no-run" set "RUN_APP=0"
 
+if defined CMAKE_GENERATOR (
+  set "CMAKE_GENERATOR_NAME=%CMAKE_GENERATOR%"
+) else (
+  set "CMAKE_GENERATOR_NAME=Visual Studio 17 2022"
+)
+
+set "IS_VS_GENERATOR=0"
+echo;%CMAKE_GENERATOR_NAME% | findstr /I "Visual Studio" >nul
+if not errorlevel 1 set "IS_VS_GENERATOR=1"
+
 if defined QT_CMAKE_PREFIX_PATH (
   set "CMAKE_PREFIX_PATH=%QT_CMAKE_PREFIX_PATH%"
 ) else (
   set "CMAKE_PREFIX_PATH="
-  for /d %%D in ("%USERPROFILE%\Qt\*") do (
-    for %%K in (msvc2022_arm64 msvc2022_64 msvc2019_64 mingw_64) do (
-      if exist "%%~fD\%%K\lib\cmake\Qt6\Qt6Config.cmake" (
-        set "CMAKE_PREFIX_PATH=%%~fD\%%K\lib\cmake"
+  if "%IS_VS_GENERATOR%"=="1" (
+    for /d %%D in ("%USERPROFILE%\Qt\*") do (
+      for %%K in (msvc2022_arm64 msvc2022_64 msvc2019_64) do (
+        if exist "%%~fD\%%K\lib\cmake\Qt6\Qt6Config.cmake" (
+          set "CMAKE_PREFIX_PATH=%%~fD\%%K\lib\cmake"
+        )
+      )
+    )
+  ) else (
+    for /d %%D in ("%USERPROFILE%\Qt\*") do (
+      for %%K in (msvc2022_arm64 msvc2022_64 msvc2019_64 mingw_64) do (
+        if exist "%%~fD\%%K\lib\cmake\Qt6\Qt6Config.cmake" (
+          set "CMAKE_PREFIX_PATH=%%~fD\%%K\lib\cmake"
+        )
+      )
       )
     )
   )
@@ -35,10 +56,14 @@ if not defined CMAKE_PREFIX_PATH (
   exit /b 1
 )
 
-if defined CMAKE_GENERATOR (
-  set "CMAKE_GENERATOR_NAME=%CMAKE_GENERATOR%"
-) else (
-  set "CMAKE_GENERATOR_NAME=Visual Studio 17 2022"
+if "%IS_VS_GENERATOR%"=="1" (
+  echo;%CMAKE_PREFIX_PATH% | findstr /I "\\mingw_" >nul
+  if not errorlevel 1 (
+    echo Error: Visual Studio generator cannot use MinGW Qt: %CMAKE_PREFIX_PATH%
+    echo Please set QT_CMAKE_PREFIX_PATH to an msvc kit, e.g.:
+    echo   set QT_CMAKE_PREFIX_PATH=%%USERPROFILE%%\Qt\6.11.0\msvc2022_64\lib\cmake
+    exit /b 1
+  )
 )
 
 if defined CMAKE_GENERATOR_PLATFORM (
@@ -51,10 +76,6 @@ if defined CMAKE_GENERATOR_PLATFORM (
     set "CMAKE_GENERATOR_PLATFORM_NAME=x64"
   )
 )
-
-set "IS_VS_GENERATOR=0"
-echo;%CMAKE_GENERATOR_NAME% | findstr /I "Visual Studio" >nul
-if not errorlevel 1 set "IS_VS_GENERATOR=1"
 
 echo Using Qt CMake path: %CMAKE_PREFIX_PATH%
 echo Using CMake generator: %CMAKE_GENERATOR_NAME%

@@ -47,6 +47,8 @@ set QT_CMAKE_PREFIX_PATH=%USERPROFILE%\Qt\6.11.0\msvc2022_arm64\lib\cmake
 scripts\build_and_run.bat
 ```
 
+Note: with Visual Studio generator, use an `msvc*` Qt kit (not `mingw_64`).
+
 Build + test only (skip running app):
 
 ```bat
@@ -83,6 +85,8 @@ Output files are generated under `build-qt/packages/`.
 set QT_CMAKE_PREFIX_PATH=%USERPROFILE%\Qt\6.11.0\msvc2022_arm64\lib\cmake
 scripts\package_windows.bat
 ```
+
+Note: with Visual Studio generator, use an `msvc*` Qt kit (not `mingw_64`).
 
 Skip tests:
 
