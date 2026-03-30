@@ -94,7 +94,6 @@ if exist "%QT_BIN_DIR%\Qt6Core.dll" (
 set "PKG_DIR=%BUILD_DIR%\packages"
 set "STAGE_DIR=%BUILD_DIR%\stage\%BUILD_TYPE%"
 set "NSIS_SCRIPT=%ROOT_DIR%\scripts\installer\massiveedit.nsi"
-set "NSIS_OUTPUT=%PKG_DIR%\MassiveEdit-Setup.exe"
 set "NSIS_ICON=%ROOT_DIR%\resources\icons\AppIcon.ico"
 
 if not exist "%PKG_DIR%" mkdir "%PKG_DIR%"
@@ -144,11 +143,12 @@ mkdir "%STAGE_DIR%"
 cmake --install "%BUILD_DIR%" --config "%BUILD_TYPE%" --prefix "%STAGE_DIR%"
 if errorlevel 1 exit /b 1
 
-set "APP_VERSION=0.1.1"
+set "APP_VERSION=0.1.2"
 if exist "%BUILD_DIR%\CMakeCache.txt" (
   for /f "tokens=2 delims==" %%V in ('findstr /B /C:"massiveedit_VERSION:STATIC=" "%BUILD_DIR%\CMakeCache.txt"') do set "APP_VERSION=%%V"
   for /f "tokens=2 delims==" %%V in ('findstr /B /C:"CMAKE_PROJECT_VERSION:STATIC=" "%BUILD_DIR%\CMakeCache.txt"') do set "APP_VERSION=%%V"
 )
+set "NSIS_OUTPUT=%PKG_DIR%\MassiveEdit-!APP_VERSION!-Setup.exe"
 
 set "NSIS_STATUS=0"
 set "NSIS_EXE="

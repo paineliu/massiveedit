@@ -41,6 +41,61 @@ UninstallIcon "${APP_ICON}"
 !insertmacro MUI_LANGUAGE "SimpChinese"
 !insertmacro MUI_LANGUAGE "English"
 
+LangString MsgAppRunningInstall ${LANG_SIMPCHINESE} "${APP_NAME} 正在运行。请先关闭程序，然后点击“重试”继续安装。"
+LangString MsgAppRunningInstall ${LANG_ENGLISH} "${APP_NAME} is currently running. Please close it, then click Retry to continue setup."
+LangString MsgAppRunningUninstall ${LANG_SIMPCHINESE} "${APP_NAME} 正在运行。请先关闭程序，然后点击“重试”继续卸载。"
+LangString MsgAppRunningUninstall ${LANG_ENGLISH} "${APP_NAME} is currently running. Please close it, then click Retry to continue uninstall."
+
+Function CheckAppRunning
+  nsExec::ExecToStack 'cmd /C tasklist /FI "IMAGENAME eq massiveedit.exe" /FO CSV /NH | find /I "massiveedit.exe" >nul'
+  Pop $0
+  Pop $1
+  StrCmp $0 "0" 0 not_running
+  StrCpy $0 "1"
+  Return
+not_running:
+  StrCpy $0 "0"
+FunctionEnd
+
+Function EnsureAppNotRunning
+check_loop:
+  Call CheckAppRunning
+  StrCmp $0 "1" 0 done
+  MessageBox MB_ICONEXCLAMATION|MB_RETRYCANCEL "$(MsgAppRunningInstall)" IDRETRY check_loop IDCANCEL cancel
+cancel:
+  Abort
+done:
+FunctionEnd
+
+Function un.CheckAppRunning
+  nsExec::ExecToStack 'cmd /C tasklist /FI "IMAGENAME eq massiveedit.exe" /FO CSV /NH | find /I "massiveedit.exe" >nul'
+  Pop $0
+  Pop $1
+  StrCmp $0 "0" 0 un_not_running
+  StrCpy $0 "1"
+  Return
+un_not_running:
+  StrCpy $0 "0"
+FunctionEnd
+
+Function un.EnsureAppNotRunning
+un_check_loop:
+  Call un.CheckAppRunning
+  StrCmp $0 "1" 0 un_done
+  MessageBox MB_ICONEXCLAMATION|MB_RETRYCANCEL "$(MsgAppRunningUninstall)" IDRETRY un_check_loop IDCANCEL un_cancel
+un_cancel:
+  Abort
+un_done:
+FunctionEnd
+
+Function .onInit
+  Call EnsureAppNotRunning
+FunctionEnd
+
+Function un.onInit
+  Call un.EnsureAppNotRunning
+FunctionEnd
+
 Section "Install"
   SetShellVarContext all
   SetOutPath "$INSTDIR"
