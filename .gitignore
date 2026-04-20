@@ -42,4 +42,5 @@
 .DS_Store
 build-qt/
 build-mas/
+build-xcode/
 build/

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleExecutable</key>
+  <string>@ME_EXECUTABLE_NAME@</string>
+  <key>CFBundleIconFile</key>
+  <string>@ME_ICON_FILE@</string>
+  <key>CFBundleIdentifier</key>
+  <string>@ME_BUNDLE_IDENTIFIER@</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>@ME_BUNDLE_NAME@</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>@ME_SHORT_VERSION@</string>
+  <key>CFBundleVersion</key>
+  <string>@ME_BUNDLE_VERSION@</string>
+  <key>LSApplicationCategoryType</key>
+  <string>@ME_APP_CATEGORY@</string>
+  <key>NSHumanReadableCopyright</key>
+  <string>Copyright (c) 2026 FiveQuestions</string>
+</dict>
+</plist>

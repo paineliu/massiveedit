@@ -6,8 +6,6 @@ ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 ICON_DIR="${ROOT_DIR}/resources/icons"
 SRC_PNG="${ICON_DIR}/app_icon_2048.png"
 OUT_ICNS="${ICON_DIR}/AppIcon.icns"
-WORK_DIR="$(mktemp -d)"
-trap 'rm -rf "${WORK_DIR}"' EXIT
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "This script only supports macOS."
@@ -19,31 +17,21 @@ if [[ ! -f "${SRC_PNG}" ]]; then
   exit 1
 fi
 
-for cmd in sips tiffutil tiff2icns; do
+for cmd in python3; do
   if ! command -v "${cmd}" >/dev/null 2>&1; then
     echo "Required command not found: ${cmd}"
     exit 1
   fi
 done
 
-sips -z 16 16 "${SRC_PNG}" --out "${WORK_DIR}/icon_16.tiff" >/dev/null
-sips -z 32 32 "${SRC_PNG}" --out "${WORK_DIR}/icon_32.tiff" >/dev/null
-sips -z 48 48 "${SRC_PNG}" --out "${WORK_DIR}/icon_48.tiff" >/dev/null
-sips -z 128 128 "${SRC_PNG}" --out "${WORK_DIR}/icon_128.tiff" >/dev/null
-sips -z 256 256 "${SRC_PNG}" --out "${WORK_DIR}/icon_256.tiff" >/dev/null
-sips -z 512 512 "${SRC_PNG}" --out "${WORK_DIR}/icon_512.tiff" >/dev/null
-sips -z 1024 1024 "${SRC_PNG}" --out "${WORK_DIR}/icon_1024.tiff" >/dev/null
+python3 - "${SRC_PNG}" "${OUT_ICNS}" <<'PY'
+from PIL import Image
+import sys
 
-tiffutil -cat \
-  "${WORK_DIR}/icon_16.tiff" \
-  "${WORK_DIR}/icon_32.tiff" \
-  "${WORK_DIR}/icon_48.tiff" \
-  "${WORK_DIR}/icon_128.tiff" \
-  "${WORK_DIR}/icon_256.tiff" \
-  "${WORK_DIR}/icon_512.tiff" \
-  "${WORK_DIR}/icon_1024.tiff" \
-  -out "${WORK_DIR}/all_icons.tiff" >/dev/null
-
-tiff2icns "${WORK_DIR}/all_icons.tiff" "${OUT_ICNS}"
+src_png, out_icns = sys.argv[1], sys.argv[2]
+img = Image.open(src_png).convert("RGBA")
+sizes = [(16, 16), (32, 32), (64, 64), (128, 128), (256, 256), (512, 512), (1024, 1024)]
+img.save(out_icns, format="ICNS", sizes=sizes)
+PY
 
 echo "Generated: ${OUT_ICNS}"

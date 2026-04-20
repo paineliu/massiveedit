@@ -43,8 +43,21 @@ target_compile_definitions(massiveedit PRIVATE
 if(APPLE)
   set(MASSIVEEDIT_APP_NAME "MassiveEdit")
   set(MASSIVEEDIT_MACOS_ICON "${PROJECT_SOURCE_DIR}/resources/icons/AppIcon.icns")
+  set(MASSIVEEDIT_MACOS_INFO_PLIST_IN "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in")
+  set(MASSIVEEDIT_MACOS_INFO_PLIST "${CMAKE_CURRENT_BINARY_DIR}/MassiveEdit-Info.plist")
+  set(ME_EXECUTABLE_NAME "${MASSIVEEDIT_APP_NAME}")
+  set(ME_ICON_FILE "AppIcon.icns")
+  set(ME_BUNDLE_IDENTIFIER "cn.fivequestions.massiveedit")
+  set(ME_BUNDLE_NAME "${MASSIVEEDIT_APP_NAME}")
+  set(ME_SHORT_VERSION "${PROJECT_VERSION}")
+  set(ME_BUNDLE_VERSION "${PROJECT_VERSION}")
+  set(ME_APP_CATEGORY "public.app-category.productivity")
+  configure_file("${MASSIVEEDIT_MACOS_INFO_PLIST_IN}" "${MASSIVEEDIT_MACOS_INFO_PLIST}" @ONLY)
   set_source_files_properties("${MASSIVEEDIT_MACOS_ICON}" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
   target_sources(massiveedit PRIVATE "${MASSIVEEDIT_MACOS_ICON}")
+  # macOS 26 SDK no longer ships AGL in SDK framework search paths.
+  # Qt may still link it transitively, so add system frameworks search path.
+  target_link_options(massiveedit PRIVATE "-Wl,-F/System/Library/Frameworks")
   set_target_properties(massiveedit PROPERTIES
     OUTPUT_NAME "${MASSIVEEDIT_APP_NAME}"
     MACOSX_BUNDLE TRUE
@@ -53,6 +66,17 @@ if(APPLE)
     MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
     MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
     MACOSX_BUNDLE_ICON_FILE "AppIcon.icns"
+    MACOSX_BUNDLE_INFO_PLIST "${MASSIVEEDIT_MACOS_INFO_PLIST}"
+    XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
+    XCODE_ATTRIBUTE_ARCHS "arm64"
+    XCODE_ATTRIBUTE_EXCLUDED_ARCHS "x86_64"
+    XCODE_ATTRIBUTE_EXCLUDED_ARCHS__EFFECTIVE_PLATFORM_SUFFIX_macosx "x86_64"
+    XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
+    XCODE_ATTRIBUTE_INFOPLIST_FILE "${MASSIVEEDIT_MACOS_INFO_PLIST}"
+    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "cn.fivequestions.massiveedit"
+    XCODE_ATTRIBUTE_GCC_GENERATE_DEBUGGING_SYMBOLS "YES"
+    XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym"
+    XCODE_ATTRIBUTE_COPY_PHASE_STRIP "NO"
     INSTALL_RPATH "@executable_path/../Frameworks"
   )
 endif()

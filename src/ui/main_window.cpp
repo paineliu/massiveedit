@@ -209,7 +209,7 @@ bool looksBinary(const QByteArray& probe) {
   if (probe.isEmpty()) {
     return false;
   }
-  const int nul = probe.indexOf('\0');
+  const qsizetype nul = probe.indexOf('\0');
   if (nul >= 0) {
     return true;
   }
@@ -1004,9 +1004,9 @@ void MainWindow::goToLocation() {
 
   QString line_part = input;
   QString column_part = QStringLiteral("1");
-  const int colon_index = input.indexOf(QLatin1Char(':'));
-  const int comma_index = input.indexOf(QLatin1Char(','));
-  int sep_index = -1;
+  const qsizetype colon_index = input.indexOf(QLatin1Char(':'));
+  const qsizetype comma_index = input.indexOf(QLatin1Char(','));
+  qsizetype sep_index = -1;
   if (colon_index >= 0 && comma_index >= 0) {
     sep_index = std::min(colon_index, comma_index);
   } else if (colon_index >= 0) {
@@ -2741,9 +2741,9 @@ void MainWindow::runFindInFiles(const QString& query,
           ++hit_count;
         }
       } else {
-        int from = 0;
+        qsizetype from = 0;
         while (hit_count < kMaxFindInFilesResults) {
-          const int found = line.indexOf(query, from, cs);
+          const qsizetype found = line.indexOf(query, from, cs);
           if (found < 0) {
             break;
           }
@@ -2758,7 +2758,7 @@ void MainWindow::runFindInFiles(const QString& query,
           child->setData(0, Qt::UserRole + 1, line_number);
           child->setData(0, Qt::UserRole + 2, found + 1);
           ++hit_count;
-          from = found + std::max(1, static_cast<int>(query.size()));
+          from = found + std::max<qsizetype>(1, query.size());
         }
       }
     }
@@ -3402,8 +3402,8 @@ QString MainWindow::buildExternalCompareSummary(const QString& path) const {
   int shown = 0;
 
   QStringList out;
-  const int max_lines = std::max(disk_lines.size(), current_lines.size());
-  for (int i = 0; i < max_lines && shown < limit; ++i) {
+  const qsizetype max_lines = std::max(disk_lines.size(), current_lines.size());
+  for (qsizetype i = 0; i < max_lines && shown < limit; ++i) {
     const QString lhs = (i < disk_lines.size()) ? disk_lines.at(i) : QString();
     const QString rhs = (i < current_lines.size()) ? current_lines.at(i) : QString();
     if (lhs == rhs) {
