@@ -78,7 +78,7 @@ namespace {
 #endif
 
 constexpr int kMaxRecentFiles = 12;
-constexpr auto kSettingsOrg = "MassiveEdit";
+constexpr auto kSettingsOrg = "FiveQuestions";
 constexpr auto kSettingsApp = "MassiveEdit";
 constexpr auto kRecentFilesKey = "recent_files";
 constexpr auto kUiLanguageKey = "ui_language";
@@ -96,11 +96,9 @@ constexpr std::uint64_t kMaxSwitchSnapshotBytes = 64ULL * 1024 * 1024;
 constexpr int kMaxFindInFilesResults = 5000;
 constexpr std::uint64_t kLargePasteConfirmBytes = 8ULL * 1024 * 1024;
 constexpr std::uint64_t kLargeReplaceConfirmBytes = 32ULL * 1024 * 1024;
-constexpr auto kAboutGithubUser = "paineliu";
-constexpr auto kAboutContactEmail = "liutingchao@hotmail.com";
-constexpr auto kAboutProjectUrl = "https://github.com/paineliu/massiveedit";
-constexpr auto kAboutIssuesUrl = "https://github.com/paineliu/massiveedit/issues";
-constexpr auto kAboutLicenseUrl = "https://github.com/paineliu/massiveedit/blob/main/LICENSE";
+constexpr auto kAboutGithubUser = "FiveQuestions";
+constexpr auto kAboutContactEmail = "liutingchao@fivequestions.cn";
+constexpr auto kAboutHomepageUrl = "https://fivequestions.cn/massiveedit";
 
 LargeFileView::AppearanceMode appearanceModeFromCode(const QString& code) {
   const QString normalized = code.trimmed();
@@ -2531,17 +2529,9 @@ void MainWindow::showAboutDialog() {
   summary += trKey("about.contact_email")
                  .arg(QStringLiteral("<a href=\"mailto:%1\">%2</a>").arg(contact_email, contact_email));
   summary += QStringLiteral("<br/>");
-  const QString repository_url = QString::fromLatin1(kAboutProjectUrl).toHtmlEscaped();
-  summary += trKey("about.repository")
-                 .arg(QStringLiteral("<a href=\"%1\">%2</a>").arg(repository_url, repository_url));
-  summary += QStringLiteral("<br/>");
-  const QString issues_url = QString::fromLatin1(kAboutIssuesUrl).toHtmlEscaped();
-  summary += trKey("about.issues")
-                 .arg(QStringLiteral("<a href=\"%1\">%2</a>").arg(issues_url, issues_url));
-  summary += QStringLiteral("<br/>");
-  const QString license_url = QString::fromLatin1(kAboutLicenseUrl).toHtmlEscaped();
-  summary += trKey("about.license")
-                 .arg(QStringLiteral("<a href=\"%1\">%2</a>").arg(license_url, QStringLiteral("MIT License")));
+  const QString homepage_url = QString::fromLatin1(kAboutHomepageUrl).toHtmlEscaped();
+  summary += trKey("about.homepage")
+                 .arg(QStringLiteral("<a href=\"%1\">%2</a>").arg(homepage_url, homepage_url));
   summary += QStringLiteral("<br/>");
   summary += trKey("about.platform")
                  .arg(QSysInfo::prettyProductName().toHtmlEscaped(),
