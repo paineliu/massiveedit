@@ -70,6 +70,27 @@ scripts\run_windows.bat
 The script tries to generate `DMG` first and always generates a `.tar.gz` fallback package.
 Output files are generated under `build-qt/packages/`.
 
+### macOS App Store preflight check
+
+After packaging, verify the app binary does not link against Homebrew runtime paths:
+
+```bash
+APP_BIN="$(find build-qt/packages/_CPack_Packages/Darwin -path "*/MassiveEdit.app/Contents/MacOS/MassiveEdit" | head -n 1)"
+/usr/bin/otool -L "${APP_BIN}"
+```
+
+Expected: Qt dependencies appear as `@rpath/Qt*.framework/...`; there should be no `/opt/homebrew/...` entries.
+
+Also verify sandbox entitlement is present in the signed app:
+
+```bash
+codesign -d --entitlements :- "/path/to/MassiveEdit.app" 2>&1
+```
+
+Expected entitlement keys include:
+- `com.apple.security.app-sandbox` = `true`
+- `com.apple.security.files.user-selected.read-write` = `true`
+
 ## Linux Package (DEB/RPM/TGZ)
 
 ```bash

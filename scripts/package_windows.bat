@@ -143,7 +143,7 @@ mkdir "%STAGE_DIR%"
 cmake --install "%BUILD_DIR%" --config "%BUILD_TYPE%" --prefix "%STAGE_DIR%"
 if errorlevel 1 exit /b 1
 
-set "APP_VERSION=1.0.0"
+set "APP_VERSION=1.0.1"
 if exist "%BUILD_DIR%\CMakeCache.txt" (
   for /f "tokens=2 delims==" %%V in ('findstr /B /C:"massiveedit_VERSION:STATIC=" "%BUILD_DIR%\CMakeCache.txt"') do set "APP_VERSION=%%V"
   for /f "tokens=2 delims==" %%V in ('findstr /B /C:"CMAKE_PROJECT_VERSION:STATIC=" "%BUILD_DIR%\CMakeCache.txt"') do set "APP_VERSION=%%V"

@@ -1,0 +1,39 @@
+set(_app "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/@MASSIVEEDIT_APP_NAME@.app")
+set(_main_binary "${_app}/Contents/MacOS/@MASSIVEEDIT_APP_NAME@")
+set(_qtwidgets_binary "${_app}/Contents/Frameworks/QtWidgets.framework/Versions/A/QtWidgets")
+
+if(NOT EXISTS "${_main_binary}")
+  message(FATAL_ERROR "App binary not found at ${_main_binary}")
+endif()
+
+execute_process(
+  COMMAND "@_macdeployqt_executable@" "${_app}" -always-overwrite -no-strip
+  RESULT_VARIABLE _deploy_result
+  OUTPUT_VARIABLE _deploy_out
+  ERROR_VARIABLE _deploy_err
+)
+
+if(NOT _deploy_result EQUAL 0)
+  message(FATAL_ERROR "macdeployqt failed with code ${_deploy_result}\n${_deploy_out}\n${_deploy_err}")
+endif()
+
+if(NOT EXISTS "${_qtwidgets_binary}")
+  message(FATAL_ERROR "QtWidgets.framework is missing after macdeployqt: ${_qtwidgets_binary}")
+endif()
+
+execute_process(
+  COMMAND /usr/bin/otool -L "${_main_binary}"
+  RESULT_VARIABLE _otool_result
+  OUTPUT_VARIABLE _otool_out
+  ERROR_VARIABLE _otool_err
+)
+
+if(NOT _otool_result EQUAL 0)
+  message(FATAL_ERROR "otool failed for ${_main_binary}\n${_otool_err}")
+endif()
+
+if(_otool_out MATCHES "/opt/homebrew/")
+  message(FATAL_ERROR
+    "Detected Homebrew runtime dependency in app binary. App Store builds must not depend on /opt/homebrew.\n${_otool_out}"
+  )
+endif()

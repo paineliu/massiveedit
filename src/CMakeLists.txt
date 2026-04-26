@@ -45,6 +45,8 @@ if(APPLE)
   set(MASSIVEEDIT_MACOS_ICON "${PROJECT_SOURCE_DIR}/resources/icons/AppIcon.icns")
   set(MASSIVEEDIT_MACOS_INFO_PLIST_IN "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in")
   set(MASSIVEEDIT_MACOS_INFO_PLIST "${CMAKE_CURRENT_BINARY_DIR}/MassiveEdit-Info.plist")
+  set(MASSIVEEDIT_MACOS_ENTITLEMENTS_IN "${CMAKE_CURRENT_SOURCE_DIR}/MassiveEdit.entitlements.in")
+  set(MASSIVEEDIT_MACOS_ENTITLEMENTS "${CMAKE_CURRENT_BINARY_DIR}/MassiveEdit.entitlements")
   set(ME_EXECUTABLE_NAME "${MASSIVEEDIT_APP_NAME}")
   set(ME_ICON_FILE "AppIcon.icns")
   set(ME_BUNDLE_IDENTIFIER "cn.fivequestions.massiveedit")
@@ -53,6 +55,7 @@ if(APPLE)
   set(ME_BUNDLE_VERSION "${PROJECT_VERSION}")
   set(ME_APP_CATEGORY "public.app-category.productivity")
   configure_file("${MASSIVEEDIT_MACOS_INFO_PLIST_IN}" "${MASSIVEEDIT_MACOS_INFO_PLIST}" @ONLY)
+  configure_file("${MASSIVEEDIT_MACOS_ENTITLEMENTS_IN}" "${MASSIVEEDIT_MACOS_ENTITLEMENTS}" @ONLY)
   set_source_files_properties("${MASSIVEEDIT_MACOS_ICON}" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
   target_sources(massiveedit PRIVATE "${MASSIVEEDIT_MACOS_ICON}")
   # macOS 26 SDK no longer ships AGL in SDK framework search paths.
@@ -74,6 +77,7 @@ if(APPLE)
     XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
     XCODE_ATTRIBUTE_INFOPLIST_FILE "${MASSIVEEDIT_MACOS_INFO_PLIST}"
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "cn.fivequestions.massiveedit"
+    XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${MASSIVEEDIT_MACOS_ENTITLEMENTS}"
     XCODE_ATTRIBUTE_GCC_GENERATE_DEBUGGING_SYMBOLS "YES"
     XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym"
     XCODE_ATTRIBUTE_COPY_PHASE_STRIP "NO"
@@ -93,18 +97,22 @@ if(APPLE)
   endif()
   get_filename_component(_qt_bin_dir "${_qt_qmake_executable}" DIRECTORY)
   set(_macdeployqt_executable "${_qt_bin_dir}/macdeployqt")
-  install(CODE "
-    set(_app \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${MASSIVEEDIT_APP_NAME}.app\")
-    execute_process(
-      COMMAND \"${_macdeployqt_executable}\" \"\${_app}\" -always-overwrite -no-strip
-      RESULT_VARIABLE _deploy_result
-      OUTPUT_VARIABLE _deploy_out
-      ERROR_VARIABLE _deploy_err
+  if(CMAKE_GENERATOR STREQUAL "Xcode")
+    # Xcode Archive does not run install()/CPack steps, so deploy Qt at build time too.
+    add_custom_command(TARGET massiveedit POST_BUILD
+      COMMAND "${_macdeployqt_executable}" "$<TARGET_BUNDLE_DIR:massiveedit>" -always-overwrite -no-strip
+      COMMENT "Deploying Qt frameworks into MassiveEdit.app for Xcode builds"
+      VERBATIM
     )
-    if(NOT _deploy_result EQUAL 0)
-      message(FATAL_ERROR \"macdeployqt failed with code \${_deploy_result}\\n\${_deploy_out}\\n\${_deploy_err}\")
-    endif()
-  ")
+  endif()
+
+  set(_massiveedit_mac_deploy_script "${CMAKE_CURRENT_BINARY_DIR}/DeployQtMac.cmake")
+  configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/DeployQtMac.cmake.in"
+    "${_massiveedit_mac_deploy_script}"
+    @ONLY
+  )
+  install(SCRIPT "${_massiveedit_mac_deploy_script}")
 endif()
 
 if(WIN32)
