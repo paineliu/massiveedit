@@ -21,6 +21,7 @@
 #include <QPainter>
 #include <QPoint>
 #include <QScrollBar>
+#include <QSignalBlocker>
 #include <QStyleHints>
 
 #include "massiveedit/ui/i18n.h"
@@ -134,7 +135,7 @@ std::size_t advanceVisualColumn(std::size_t visual_column, QChar ch, int tab_wid
 
 LargeFileView::LargeFileView(QWidget* parent) : QAbstractScrollArea(parent) {
   setFont(QFont(QStringLiteral("Menlo"), 12));
-  setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
   setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
   setFocusPolicy(Qt::StrongFocus);
   setCursor(Qt::IBeamCursor);
@@ -151,12 +152,10 @@ LargeFileView::LargeFileView(QWidget* parent) : QAbstractScrollArea(parent) {
   });
 
   connect(verticalScrollBar(), &QScrollBar::valueChanged, this, [this](int value) {
-    const std::size_t new_top_line = static_cast<std::size_t>(std::max(0, value));
-    if (top_line_ == new_top_line) {
-      return;
-    }
-    top_line_ = new_top_line;
-    emit scrollActivity(top_line_);
+    applyScrollValue(value);
+  });
+
+  connect(horizontalScrollBar(), &QScrollBar::valueChanged, this, [this](int) {
     viewport()->update();
   });
 
@@ -185,6 +184,8 @@ void LargeFileView::setSession(core::DocumentSession* session) {
 
   session_ = session;
   top_line_ = 0;
+  viewport_byte_anchor_ = 0;
+  scroll_by_byte_position_ = false;
   cursor_line_ = 0;
   cursor_column_ = 0;
   preferred_column_ = 0;
@@ -196,6 +197,7 @@ void LargeFileView::setSession(core::DocumentSession* session) {
   cached_rows_.clear();
   cached_start_line_ = 0;
   cached_visible_lines_ = 0;
+  horizontalScrollBar()->setValue(0);
 
   if (session_ != nullptr) {
     connect(session_, &core::DocumentSession::changed, this, [this]() {
@@ -204,6 +206,14 @@ void LargeFileView::setSession(core::DocumentSession* session) {
       selection_caret_offset_ = 0;
       rows_cache_valid_ = false;
       cached_rows_.clear();
+      if (session_ != nullptr && scroll_by_byte_position_ &&
+          session_->isByteOffsetIndexed(viewport_byte_anchor_)) {
+        std::size_t resolved_line = 0;
+        std::size_t resolved_column = 0;
+        if (session_->lineColumnForOffset(viewport_byte_anchor_, &resolved_line, &resolved_column)) {
+          top_line_ = resolved_line;
+        }
+      }
       clampCursor();
       updateScrollbars();
       ensureCursorVisible(false);
@@ -321,6 +331,31 @@ void LargeFileView::scrollToLine(std::size_t line, bool center) {
     return;
   }
 
+  if (scroll_by_byte_position_) {
+    viewport_byte_anchor_ = session_->estimatedByteOffsetForLine(line);
+    top_line_ = line;
+    int pos = 0;
+    const std::uint64_t size = session_->byteSize();
+    if (size > 0) {
+      pos = static_cast<int>((static_cast<double>(viewport_byte_anchor_) / static_cast<double>(size)) *
+                             static_cast<double>(kByteScrollSteps));
+      pos = std::clamp(pos, 0, kByteScrollSteps);
+    }
+    if (center) {
+      const int half_page = std::max(1, verticalScrollBar()->pageStep() / 2);
+      pos = std::max(0, pos - half_page);
+      if (size > 0) {
+        viewport_byte_anchor_ = static_cast<std::uint64_t>(
+            (static_cast<double>(pos) / static_cast<double>(kByteScrollSteps)) * static_cast<double>(size));
+      }
+    }
+    session_->setScrollIndexTarget(viewport_byte_anchor_);
+    emit scrollActivity(top_line_);
+    verticalScrollBar()->setValue(pos);
+    viewport()->update();
+    return;
+  }
+
   const int max_value = verticalScrollBar()->maximum();
   const int requested = (line > static_cast<std::size_t>(std::numeric_limits<int>::max()))
                             ? std::numeric_limits<int>::max()
@@ -332,6 +367,7 @@ void LargeFileView::scrollToLine(std::size_t line, bool center) {
   }
 
   top_line_ = static_cast<std::size_t>(target);
+  session_->setScrollIndexTarget(session_->estimatedByteOffsetForLine(top_line_));
   emit scrollActivity(top_line_);
   verticalScrollBar()->setValue(target);
   viewport()->update();
@@ -452,6 +488,18 @@ void LargeFileView::paintEvent(QPaintEvent* event) {
   const auto& rows = cached_rows_;
   const std::size_t first_visible_index =
       (top_line_ > cached_start_line_) ? (top_line_ - cached_start_line_) : static_cast<std::size_t>(0);
+  if (rows.empty() && session_->byteSize() > 0 && top_line_ >= session_->indexedLineCount()) {
+    painter.setPen(colors.hint);
+    painter.drawText(text_x + 4, text_baseline + 4, trKey("hint.indexing_scroll_target"));
+    horizontalScrollBar()->setRange(0, 0);
+    return;
+  }
+  updateHorizontalScrollbar(rows, first_visible_index, visible_lines);
+
+  const int hscroll = horizontalScrollOffset();
+  const int draw_text_x = text_x - hscroll;
+  const int text_area_width = textAreaWidth();
+
   std::uint64_t selection_start = 0;
   std::uint64_t selection_end = 0;
   const bool has_selection = selectedOffsets(&selection_start, &selection_end);
@@ -467,8 +515,6 @@ void LargeFileView::paintEvent(QPaintEvent* event) {
     const QString display_text = expandTabsForDisplay(text);
 
     if (line_index == cursor_line_) {
-      painter.fillRect(
-          gutter_width, row_top, viewport()->width() - gutter_width, line_height, colors.current_row);
       painter.fillRect(0, row_top, gutter_width, line_height, colors.current_row_gutter);
     }
 
@@ -476,6 +522,14 @@ void LargeFileView::paintEvent(QPaintEvent* event) {
     const int line_label_x = gutter_width - 6 - fontMetrics().horizontalAdvance(line_label);
     painter.setPen(line_index == cursor_line_ ? colors.line_number_active : colors.line_number);
     painter.drawText(std::max(2, line_label_x), row_top + text_baseline, line_label);
+
+    painter.save();
+    painter.setClipRect(gutter_width, row_top, text_area_width, line_height);
+
+    if (line_index == cursor_line_) {
+      painter.fillRect(
+          gutter_width, row_top, viewport()->width() - gutter_width, line_height, colors.current_row);
+    }
     painter.setPen(colors.text);
 
     if (has_selection) {
@@ -504,8 +558,8 @@ void LargeFileView::paintEvent(QPaintEvent* event) {
         const std::size_t sel_end_col = columnForOffset(clamped_end);
 
         if (sel_end_col > sel_start_col) {
-          const int start_x = text_x + xForBufferColumn(text, sel_start_col, metrics);
-          const int end_x = text_x + xForBufferColumn(text, sel_end_col, metrics);
+          const int start_x = draw_text_x + xForBufferColumn(text, sel_start_col, metrics);
+          const int end_x = draw_text_x + xForBufferColumn(text, sel_end_col, metrics);
           const int width = std::max(2, end_x - start_x);
           painter.fillRect(start_x, row_top + 1, width, line_height, colors.selection);
         }
@@ -522,23 +576,24 @@ void LargeFileView::paintEvent(QPaintEvent* event) {
       const std::size_t clamped_len = std::max<std::size_t>(
           1, std::min<std::size_t>(active_match_length_, available == 0 ? 1 : available));
       const std::size_t clamped_end_col = clamped_col + clamped_len;
-      const int start_x = text_x + xForBufferColumn(text, clamped_col, metrics);
-      const int end_x = text_x + xForBufferColumn(text, clamped_end_col, metrics);
+      const int start_x = draw_text_x + xForBufferColumn(text, clamped_col, metrics);
+      const int end_x = draw_text_x + xForBufferColumn(text, clamped_end_col, metrics);
       const int width = std::max(2, end_x - start_x);
 
       painter.fillRect(start_x, row_top + 1, width, line_height, colors.match);
     }
 
-    painter.drawText(text_x, row_top + text_baseline, display_text);
+    painter.drawText(draw_text_x, row_top + text_baseline, display_text);
 
     if (line_index == cursor_line_ && hasFocus() && caret_visible_) {
       const std::size_t clamped_col =
           std::min<std::size_t>(cursor_column_, static_cast<std::size_t>(text.size()));
-      const int caret_x = text_x + xForBufferColumn(text, clamped_col, metrics);
+      const int caret_x = draw_text_x + xForBufferColumn(text, clamped_col, metrics);
       painter.setPen(colors.caret);
       painter.drawLine(caret_x, row_top + 2, caret_x, row_top + line_height - 2);
       painter.setPen(colors.text);
     }
+    painter.restore();
   }
 }
 
@@ -548,16 +603,78 @@ void LargeFileView::resizeEvent(QResizeEvent* event) {
   ensureCursorVisible(false);
 }
 
+void LargeFileView::applyScrollValue(int value) {
+  if (session_ == nullptr) {
+    return;
+  }
+
+  scroll_by_byte_position_ = !session_->isLineIndexComplete();
+  rows_cache_valid_ = false;
+
+  if (scroll_by_byte_position_) {
+    const std::uint64_t size = session_->byteSize();
+    std::uint64_t byte_anchor = 0;
+    if (size > 0) {
+      byte_anchor = static_cast<std::uint64_t>(
+          (static_cast<double>(value) / static_cast<double>(kByteScrollSteps)) * static_cast<double>(size));
+      if (byte_anchor >= size) {
+        byte_anchor = size - 1;
+      }
+    }
+    viewport_byte_anchor_ = byte_anchor;
+    session_->setScrollIndexTarget(viewport_byte_anchor_);
+    if (session_->isByteOffsetIndexed(viewport_byte_anchor_)) {
+      std::size_t resolved_line = 0;
+      std::size_t resolved_column = 0;
+      if (session_->lineColumnForOffset(viewport_byte_anchor_, &resolved_line, &resolved_column)) {
+        top_line_ = resolved_line;
+      }
+    } else {
+      top_line_ = session_->estimatedLineForByteOffset(viewport_byte_anchor_);
+    }
+    emit scrollActivity(top_line_);
+    viewport()->update();
+    return;
+  }
+
+  const std::size_t new_top_line = static_cast<std::size_t>(std::max(0, value));
+  if (top_line_ == new_top_line) {
+    return;
+  }
+  top_line_ = new_top_line;
+  session_->setScrollIndexTarget(session_->estimatedByteOffsetForLine(top_line_));
+  emit scrollActivity(top_line_);
+  viewport()->update();
+}
+
 void LargeFileView::updateScrollbars() {
   const int line_height = std::max(1, fontMetrics().lineSpacing());
   const int visible_lines = std::max(1, viewport()->height() / line_height);
 
   if (session_ == nullptr) {
+    scroll_by_byte_position_ = false;
     verticalScrollBar()->setRange(0, 0);
     verticalScrollBar()->setPageStep(1);
     return;
   }
 
+  if (!session_->isLineIndexComplete()) {
+    scroll_by_byte_position_ = true;
+    const std::uint64_t size = session_->byteSize();
+    int pos = 0;
+    if (size > 0) {
+      pos = static_cast<int>((static_cast<double>(viewport_byte_anchor_) / static_cast<double>(size)) *
+                             static_cast<double>(kByteScrollSteps));
+      pos = std::clamp(pos, 0, kByteScrollSteps);
+    }
+    QSignalBlocker blocker(verticalScrollBar());
+    verticalScrollBar()->setRange(0, kByteScrollSteps);
+    verticalScrollBar()->setPageStep(std::max(1, kByteScrollSteps / 50));
+    verticalScrollBar()->setValue(pos);
+    return;
+  }
+
+  scroll_by_byte_position_ = false;
   const std::size_t total_lines_size = session_->lineCount();
   const int total_lines =
       (total_lines_size > static_cast<std::size_t>(std::numeric_limits<int>::max()))
@@ -571,6 +688,76 @@ void LargeFileView::updateScrollbars() {
   if (static_cast<int>(top_line_) > max_value) {
     top_line_ = static_cast<std::size_t>(max_value);
     verticalScrollBar()->setValue(max_value);
+  }
+}
+
+void LargeFileView::updateHorizontalScrollbar(const std::vector<core::DocumentSession::ViewLine>& rows,
+                                              std::size_t first_visible_index,
+                                              int visible_line_count) {
+  if (session_ == nullptr) {
+    horizontalScrollBar()->setRange(0, 0);
+    return;
+  }
+
+  const QFontMetrics metrics = fontMetrics();
+  int content_width = 0;
+  const int last_index = std::min<int>(static_cast<int>(rows.size()),
+                                       static_cast<int>(first_visible_index) + visible_line_count);
+  for (int i = static_cast<int>(first_visible_index); i < last_index; ++i) {
+    content_width = std::max(content_width, linePixelWidth(rows[static_cast<std::size_t>(i)].text, metrics));
+  }
+
+  const QString cursor_line = cursorLineText();
+  if (!cursor_line.isNull()) {
+    content_width = std::max(content_width, linePixelWidth(cursor_line, metrics));
+  }
+
+  const int area_width = textAreaWidth();
+  const int max_scroll = std::max(0, content_width - area_width);
+  const int current = horizontalScrollBar()->value();
+  QSignalBlocker blocker(horizontalScrollBar());
+  horizontalScrollBar()->setRange(0, max_scroll);
+  horizontalScrollBar()->setPageStep(std::max(1, area_width));
+  horizontalScrollBar()->setSingleStep(std::max(1, metrics.averageCharWidth()));
+  horizontalScrollBar()->setValue(std::clamp(current, 0, max_scroll));
+}
+
+int LargeFileView::textAreaWidth() const {
+  return std::max(0, viewport()->width() - gutterWidth());
+}
+
+int LargeFileView::horizontalScrollOffset() const {
+  return horizontalScrollBar()->value();
+}
+
+int LargeFileView::linePixelWidth(const QString& text, const QFontMetrics& metrics) const {
+  if (text.isEmpty()) {
+    return 0;
+  }
+  return metrics.horizontalAdvance(expandTabsForDisplay(text));
+}
+
+void LargeFileView::ensureCursorVisibleHorizontally() {
+  if (session_ == nullptr) {
+    return;
+  }
+
+  const QFontMetrics metrics = fontMetrics();
+  const QString line_text = cursorLineText();
+  const std::size_t line_len = line_text.isNull() ? 0 : static_cast<std::size_t>(line_text.size());
+  const std::size_t clamped_col = std::min<std::size_t>(cursor_column_, line_len);
+  const int caret_x = xForBufferColumn(line_text, clamped_col, metrics);
+  const int hscroll = horizontalScrollOffset();
+  const int visible = textAreaWidth();
+  int target_hscroll = hscroll;
+  if (caret_x < hscroll) {
+    target_hscroll = caret_x;
+  } else if (visible > 0 && caret_x > hscroll + visible - metrics.averageCharWidth()) {
+    target_hscroll = caret_x - visible + metrics.averageCharWidth();
+  }
+  target_hscroll = std::clamp(target_hscroll, 0, horizontalScrollBar()->maximum());
+  if (target_hscroll != hscroll) {
+    horizontalScrollBar()->setValue(target_hscroll);
   }
 }
 
@@ -893,7 +1080,8 @@ QVariant LargeFileView::inputMethodQuery(Qt::InputMethodQuery query) const {
       const std::size_t line_len =
           line_text.isNull() ? 0 : static_cast<std::size_t>(line_text.size());
       const std::size_t clamped_col = std::min<std::size_t>(cursor_column_, line_len);
-      const int caret_x = textOriginX() + xForBufferColumn(line_text, clamped_col, metrics);
+      const int caret_x = textOriginX() - horizontalScrollOffset() +
+                          xForBufferColumn(line_text, clamped_col, metrics);
       const std::size_t visual_row = (cursor_line_ >= top_line_) ? (cursor_line_ - top_line_) : 0;
       const int row = (visual_row > static_cast<std::size_t>(std::numeric_limits<int>::max()))
                           ? std::numeric_limits<int>::max()
@@ -1093,6 +1281,7 @@ void LargeFileView::ensureCursorVisible(bool center) {
   }
   if (center) {
     scrollToLine(cursor_line_, true);
+    ensureCursorVisibleHorizontally();
     return;
   }
 
@@ -1113,6 +1302,7 @@ void LargeFileView::ensureCursorVisible(bool center) {
     top_line_ = static_cast<std::size_t>(target_top);
     verticalScrollBar()->setValue(target_top);
   }
+  ensureCursorVisibleHorizontally();
 }
 
 int LargeFileView::gutterWidth() const {
@@ -1402,7 +1592,7 @@ bool LargeFileView::positionToLineColumn(const QPoint& position,
   target_line = lines.front().line_index;
 
   const int left_padding = textOriginX();
-  const int x = std::max(0, position.x() - left_padding);
+  const int x = std::max(0, position.x() - left_padding + horizontalScrollOffset());
   const std::size_t approx_col = bufferColumnForPixelX(text, x, fontMetrics());
 
   *line = target_line;

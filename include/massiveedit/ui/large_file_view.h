@@ -68,11 +68,19 @@ signals:
 
  private:
   void updateScrollbars();
+  void updateHorizontalScrollbar(const std::vector<core::DocumentSession::ViewLine>& rows,
+                                 std::size_t first_visible_index,
+                                 int visible_line_count);
+  void applyScrollValue(int value);
   void clampCursor();
   void setCursorPosition(std::size_t line, std::size_t column, bool keep_preferred_column = false);
   void ensureCursorVisible(bool center = false);
+  void ensureCursorVisibleHorizontally();
   [[nodiscard]] int gutterWidth() const;
   [[nodiscard]] int textOriginX() const;
+  [[nodiscard]] int textAreaWidth() const;
+  [[nodiscard]] int horizontalScrollOffset() const;
+  [[nodiscard]] int linePixelWidth(const QString& text, const QFontMetrics& metrics) const;
   [[nodiscard]] QString expandTabsForDisplay(const QString& text) const;
   [[nodiscard]] std::size_t visualColumnForBufferColumn(const QString& text, std::size_t column) const;
   [[nodiscard]] std::size_t bufferColumnForVisualColumn(const QString& text, std::size_t visual_column) const;
@@ -118,6 +126,9 @@ signals:
   QTimer caret_blink_timer_;
   bool caret_visible_ = true;
   int tab_width_spaces_ = 4;
+  bool scroll_by_byte_position_ = false;
+  std::uint64_t viewport_byte_anchor_ = 0;
+  static constexpr int kByteScrollSteps = 100000;
 };
 
 }  // namespace massiveedit::ui

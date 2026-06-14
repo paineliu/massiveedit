@@ -17,6 +17,15 @@
 namespace massiveedit::core {
 namespace {
 
+constexpr std::size_t kLineViewChunkSize = 256ULL * 1024;
+constexpr std::size_t kLineViewMaxBytesPerLine = 64ULL * 1024;
+constexpr std::size_t kLineViewMaxCharsPerLine = 4096;
+constexpr std::uint64_t kLineLookupMaxScanBytes = 4ULL * 1024 * 1024;
+constexpr std::size_t kBackgroundIndexChunkBytes = 256ULL * 1024;
+constexpr std::size_t kInteractiveIndexChunkBytes = 4ULL * 1024 * 1024;
+constexpr std::uint64_t kInteractiveIndexBurstBytes = 16ULL * 1024 * 1024;
+constexpr std::uint64_t kScrollIndexLookaheadBytes = 512ULL * 1024;
+
 std::size_t cacheBytesFromEnv() {
   constexpr std::size_t kDefaultCacheBytes = 256ULL * 1024 * 1024;
   const char* env = std::getenv("MASSIVEEDIT_CACHE_MB");
@@ -124,6 +133,8 @@ bool DocumentSession::openFile(const QString& file_path, QString* error) {
   }
 
   emitChangedAndUndoState();
+  index_scroll_target_byte_.store(0, std::memory_order_relaxed);
+  setIndexPriority(IndexPriority::kInteractive);
   return true;
 }
 
@@ -536,15 +547,7 @@ std::vector<DocumentSession::ViewLine> DocumentSession::viewLines(std::size_t st
     return out;
   }
 
-  const auto reader = [this](std::uint64_t offset, std::size_t length) {
-    return readBytesLocked(offset, length);
-  };
   LineIndexer& indexer = const_cast<DocumentSession*>(this)->line_indexer_;
-  const std::size_t known_before = indexer.knownLineCount();
-  if (!indexer.isComplete() && start_line + count >= known_before) {
-    const std::size_t step = std::max<std::size_t>(count * 4, 1024);
-    (void)indexer.ensureLineIndexed(known_before + step, reader);
-  }
 
   for (std::size_t i = 0; i < count; ++i) {
     const std::size_t line_index = start_line + i;
@@ -575,7 +578,7 @@ bool DocumentSession::offsetForLineColumn(std::size_t line_index,
     return readBytesLocked(read_offset, read_len);
   };
   LineIndexer& indexer = const_cast<DocumentSession*>(this)->line_indexer_;
-  indexer.ensureLineIndexed(line_index + 1, reader);
+  (void)indexer.ensureLineIndexed(line_index + 1, reader, kLineViewChunkSize, kLineLookupMaxScanBytes);
   if (line_index >= line_indexer_.knownLineCount()) {
     return false;
   }
@@ -627,7 +630,8 @@ bool DocumentSession::lineColumnForOffset(std::uint64_t offset,
   const auto reader = [this](std::uint64_t read_offset, std::size_t read_len) {
     return readBytesLocked(read_offset, read_len);
   };
-  (void)const_cast<DocumentSession*>(this)->line_indexer_.ensureOffsetIndexed(clamped, reader);
+  (void)const_cast<DocumentSession*>(this)->line_indexer_.ensureOffsetIndexed(
+      clamped, reader, kLineViewChunkSize, kLineLookupMaxScanBytes);
 
   const std::size_t resolved_line = line_indexer_.lineIndexForOffset(clamped);
   const std::uint64_t line_start = line_indexer_.lineStart(resolved_line);
@@ -688,6 +692,76 @@ void DocumentSession::setIndexPriority(IndexPriority priority) {
 
 DocumentSession::IndexPriority DocumentSession::indexPriority() const {
   return index_priority_.load(std::memory_order_relaxed);
+}
+
+void DocumentSession::setScrollIndexTarget(std::uint64_t byte_offset) {
+  index_scroll_target_byte_.store(byte_offset, std::memory_order_relaxed);
+  index_cv_.notify_one();
+}
+
+std::size_t DocumentSession::estimatedLineForByteOffset(std::uint64_t offset) const {
+  std::shared_lock<std::shared_mutex> lock(model_mutex_);
+  const std::uint64_t size = piece_table_.size();
+  if (size == 0) {
+    return 0;
+  }
+
+  const std::uint64_t clamped = std::min<std::uint64_t>(offset, size - 1);
+  if (line_indexer_.isComplete() || line_indexer_.isOffsetIndexed(clamped)) {
+    return line_indexer_.lineIndexForOffset(clamped);
+  }
+
+  if (line_indexer_.knownLineCount() <= 1 || line_indexer_.scannedByteOffset() == 0) {
+    return 0;
+  }
+
+  const double avg_bytes_per_line =
+      static_cast<double>(line_indexer_.scannedByteOffset()) /
+      static_cast<double>(line_indexer_.knownLineCount() - 1);
+  if (avg_bytes_per_line <= 0.0001) {
+    return 0;
+  }
+
+  const std::size_t estimated =
+      static_cast<std::size_t>(static_cast<double>(clamped) / avg_bytes_per_line);
+  const std::size_t max_line = line_indexer_.estimatedLineCount();
+  return max_line > 0 ? std::min<std::size_t>(estimated, max_line - 1) : 0;
+}
+
+std::uint64_t DocumentSession::estimatedByteOffsetForLine(std::size_t line) const {
+  std::shared_lock<std::shared_mutex> lock(model_mutex_);
+  const std::uint64_t size = piece_table_.size();
+  if (size == 0) {
+    return 0;
+  }
+
+  if (line_indexer_.isComplete()) {
+    return line_indexer_.lineStart(std::min(line, line_indexer_.knownLineCount() - 1));
+  }
+
+  if (line_indexer_.knownLineCount() <= 1) {
+    return 0;
+  }
+
+  const double avg_bytes_per_line =
+      static_cast<double>(line_indexer_.scannedByteOffset()) /
+      static_cast<double>(line_indexer_.knownLineCount() - 1);
+  if (avg_bytes_per_line <= 0.0001) {
+    return 0;
+  }
+
+  const std::uint64_t estimated =
+      static_cast<std::uint64_t>(static_cast<double>(line) * avg_bytes_per_line);
+  return std::min<std::uint64_t>(estimated, size > 0 ? size - 1 : 0);
+}
+
+bool DocumentSession::isByteOffsetIndexed(std::uint64_t offset) const {
+  std::shared_lock<std::shared_mutex> lock(model_mutex_);
+  const std::uint64_t size = piece_table_.size();
+  if (size == 0) {
+    return true;
+  }
+  return line_indexer_.isOffsetIndexed(std::min<std::uint64_t>(offset, size));
 }
 
 std::size_t DocumentSession::indexedLineCount() const {
@@ -1275,37 +1349,14 @@ QString DocumentSession::lineAtLocked(std::size_t line_index) {
     return readBytesLocked(offset, length);
   };
 
-  line_indexer_.ensureLineIndexed(line_index + 1, reader);
+  if (line_index >= line_indexer_.knownLineCount() && !line_indexer_.isComplete()) {
+    (void)line_indexer_.ensureLineIndexed(line_index, reader, kLineViewChunkSize, kLineLookupMaxScanBytes);
+  }
   if (line_index >= line_indexer_.knownLineCount()) {
     return QString();
   }
 
-  const std::uint64_t start = line_indexer_.lineStart(line_index);
-  line_indexer_.ensureLineIndexed(line_index + 1, reader);
-  const std::uint64_t end =
-      (line_index + 1 < line_indexer_.knownLineCount()) ? line_indexer_.lineStart(line_index + 1)
-                                                         : piece_table_.size();
-  if (end < start) {
-    return QString();
-  }
-  if (end == start) {
-    return QStringLiteral("");
-  }
-
-  std::string line = piece_table_.read(start, end - start, [this](std::uint64_t source_offset,
-                                                                   std::size_t take) {
-    return chunk_cache_.read(source_offset, take);
-  });
-  if (!line.empty() && line.back() == '\n') {
-    line.pop_back();
-  }
-  if (!line.empty() && line.back() == '\r') {
-    line.pop_back();
-  }
-  if (line.empty()) {
-    return QStringLiteral("");
-  }
-  return decodeBytesFromStorageLocked(line);
+  return buildViewLineLocked(line_index, kLineViewMaxBytesPerLine, kLineViewMaxCharsPerLine).text;
 }
 
 DocumentSession::ViewLine DocumentSession::buildViewLineLocked(std::size_t line_index,
@@ -1634,10 +1685,13 @@ void DocumentSession::indexWorkerLoop() {
       bool complete = false;
       bool progressed = false;
       const IndexPriority priority = index_priority_.load(std::memory_order_relaxed);
-      const std::size_t max_scan_bytes =
-          (priority == IndexPriority::kInteractive) ? (64ULL * 1024) : (256ULL * 1024);
+      const std::uint64_t scroll_target_byte =
+          index_scroll_target_byte_.load(std::memory_order_relaxed);
+      const std::size_t chunk_bytes =
+          (priority == IndexPriority::kInteractive) ? kInteractiveIndexChunkBytes
+                                                    : kBackgroundIndexChunkBytes;
       const std::size_t notify_threshold =
-          (priority == IndexPriority::kInteractive) ? static_cast<std::size_t>(24)
+          (priority == IndexPriority::kInteractive) ? static_cast<std::size_t>(8)
                                                     : static_cast<std::size_t>(8);
       {
         std::unique_lock<std::shared_mutex> lock(model_mutex_);
@@ -1648,7 +1702,28 @@ void DocumentSession::indexWorkerLoop() {
           const auto reader = [this](std::uint64_t offset, std::size_t length) {
             return readBytesLocked(offset, length);
           };
-          progressed = line_indexer_.indexNextChunk(reader, max_scan_bytes);
+          const std::uint64_t document_size = piece_table_.size();
+          if (priority == IndexPriority::kInteractive && scroll_target_byte > 0 &&
+              !line_indexer_.isOffsetIndexed(scroll_target_byte)) {
+            const std::uint64_t target_byte = std::min<std::uint64_t>(
+                document_size,
+                scroll_target_byte + kScrollIndexLookaheadBytes);
+            progressed = line_indexer_.ensureOffsetIndexed(
+                target_byte, reader, chunk_bytes, kInteractiveIndexBurstBytes);
+          } else if (priority == IndexPriority::kInteractive) {
+            std::uint64_t scanned = 0;
+            while (!line_indexer_.isComplete() && scanned < kInteractiveIndexBurstBytes) {
+              const std::uint64_t before = line_indexer_.scannedByteOffset();
+              if (!line_indexer_.indexNextChunk(reader, chunk_bytes)) {
+                break;
+              }
+              const std::uint64_t after = line_indexer_.scannedByteOffset();
+              scanned += (after > before) ? (after - before) : chunk_bytes;
+              progressed = true;
+            }
+          } else {
+            progressed = line_indexer_.indexNextChunk(reader, chunk_bytes);
+          }
           progressed = progressed || (line_indexer_.knownLineCount() > known_before);
           complete = line_indexer_.isComplete();
         }

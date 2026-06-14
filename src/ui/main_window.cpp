@@ -314,6 +314,18 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     }
   });
 
+  file_change_debounce_timer_ = new QTimer(this);
+  file_change_debounce_timer_->setSingleShot(true);
+  file_change_debounce_timer_->setInterval(500);
+  connect(file_change_debounce_timer_, &QTimer::timeout, this, [this]() {
+    if (pending_watched_file_change_path_.isEmpty()) {
+      return;
+    }
+    const QString path = pending_watched_file_change_path_;
+    pending_watched_file_change_path_.clear();
+    promptExternalFileChange(path);
+  });
+
   connect(tab_bar_, &QTabBar::currentChanged, this, &MainWindow::handleTabChanged);
   connect(tab_bar_, &QTabBar::tabCloseRequested, this, &MainWindow::handleTabCloseRequested);
 
@@ -913,6 +925,7 @@ bool MainWindow::saveCurrentFile() {
   tab.snapshot_dirty = false;
   tab.encoding = session_.textEncoding();
   tab.line_ending = session_.lineEnding();
+  tab.ignore_external_file_changes = false;
   (void)removeSnapshotFile(tab.snapshot_path);
   if (!tab.operation_log_path.isEmpty()) {
     (void)QFile::remove(tab.operation_log_path);
@@ -953,6 +966,7 @@ bool MainWindow::saveAsInteractive() {
   tab.snapshot_dirty = false;
   tab.encoding = session_.textEncoding();
   tab.line_ending = session_.lineEnding();
+  tab.ignore_external_file_changes = false;
   (void)removeSnapshotFile(tab.snapshot_path);
   if (!tab.operation_log_path.isEmpty()) {
     (void)QFile::remove(tab.operation_log_path);
@@ -2946,6 +2960,11 @@ void MainWindow::updateFileWatcher() {
     return;
   }
 
+  if (file_change_debounce_timer_ != nullptr) {
+    file_change_debounce_timer_->stop();
+  }
+  pending_watched_file_change_path_.clear();
+
   const QStringList watched = file_watcher_->files();
   if (!watched.isEmpty()) {
     file_watcher_->removePaths(watched);
@@ -2970,6 +2989,43 @@ void MainWindow::handleWatchedFileChanged(const QString& path) {
   if (path.isEmpty() || path != session_.filePath() || !QFileInfo::exists(path)) {
     return;
   }
+
+  if (hasCurrentTab() && tabs_[currentTabIndex()].ignore_external_file_changes) {
+    return;
+  }
+
+  if (file_change_prompt_visible_) {
+    return;
+  }
+
+  pending_watched_file_change_path_ = path;
+  if (file_change_debounce_timer_ != nullptr) {
+    file_change_debounce_timer_->start();
+  }
+}
+
+void MainWindow::promptExternalFileChange(const QString& path) {
+  if (suppress_file_change_prompt_) {
+    return;
+  }
+
+  if (path.isEmpty() || path != session_.filePath() || !QFileInfo::exists(path)) {
+    return;
+  }
+
+  if (hasCurrentTab() && tabs_[currentTabIndex()].ignore_external_file_changes) {
+    return;
+  }
+
+  if (file_change_prompt_visible_) {
+    return;
+  }
+
+  file_change_prompt_visible_ = true;
+  struct PromptGuard {
+    bool& flag;
+    ~PromptGuard() { flag = false; }
+  } prompt_guard{file_change_prompt_visible_};
 
   while (true) {
     QMessageBox msg(this);
@@ -2999,6 +3055,9 @@ void MainWindow::handleWatchedFileChanged(const QString& path) {
     msg.exec();
     QPushButton* clicked = qobject_cast<QPushButton*>(msg.clickedButton());
     if (clicked == nullptr || clicked == keep_button) {
+      if (hasCurrentTab()) {
+        tabs_[currentTabIndex()].ignore_external_file_changes = true;
+      }
       return;
     }
     if (clicked == compare_button) {
@@ -3037,6 +3096,7 @@ void MainWindow::handleWatchedFileChanged(const QString& path) {
       TabState& tab = tabs_[currentTabIndex()];
       tab.file_path = path;
       tab.snapshot_dirty = false;
+      tab.ignore_external_file_changes = false;
       (void)removeSnapshotFile(tab.snapshot_path);
       if (!tab.operation_log_path.isEmpty()) {
         (void)QFile::remove(tab.operation_log_path);

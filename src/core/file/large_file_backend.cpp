@@ -1,6 +1,7 @@
 #include "massiveedit/core/file/large_file_backend.h"
 
 #include <algorithm>
+#include <system_error>
 
 namespace massiveedit::core::file {
 
@@ -15,9 +16,15 @@ bool LargeFileBackend::open(const std::filesystem::path& path, std::string* erro
     return false;
   }
 
-  stream_.seekg(0, std::ios::end);
-  size_ = static_cast<std::uint64_t>(stream_.tellg());
-  stream_.seekg(0, std::ios::beg);
+  std::error_code ec;
+  const auto file_size = std::filesystem::file_size(path, ec);
+  if (ec) {
+    stream_.seekg(0, std::ios::end);
+    size_ = static_cast<std::uint64_t>(stream_.tellg());
+    stream_.seekg(0, std::ios::beg);
+  } else {
+    size_ = static_cast<std::uint64_t>(file_size);
+  }
   path_ = path;
   return true;
 }

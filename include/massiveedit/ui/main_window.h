@@ -98,6 +98,7 @@ class MainWindow : public QMainWindow {
     std::size_t cursor_column = 0;
     std::set<std::size_t> bookmarks;
     bool read_only = false;
+    bool ignore_external_file_changes = false;
   };
 
   struct SnapshotPayload {
@@ -135,6 +136,7 @@ class MainWindow : public QMainWindow {
   void updateTabTitle(int index);
   void updateAllTabTitles();
   void updateFileWatcher();
+  void promptExternalFileChange(const QString& path);
   void addRecentFile(const QString& path);
   void clearRecentFiles();
   void loadRecentFiles();
@@ -194,6 +196,7 @@ class MainWindow : public QMainWindow {
   QTimer* refresh_timer_ = nullptr;
   QTimer* scroll_idle_timer_ = nullptr;
   QTimer* scroll_status_timer_ = nullptr;
+  QTimer* file_change_debounce_timer_ = nullptr;
 
   QDockWidget* perf_dock_ = nullptr;
   QLabel* perf_summary_label_ = nullptr;
@@ -262,6 +265,8 @@ class MainWindow : public QMainWindow {
   QStringList recent_files_;
   core::SearchOptions last_search_options_;
   bool suppress_file_change_prompt_ = false;
+  bool file_change_prompt_visible_ = false;
+  QString pending_watched_file_change_path_;
   bool view_scrolling_ = false;
   bool pending_refresh_while_scrolling_ = false;
   QString last_find_in_files_dir_;

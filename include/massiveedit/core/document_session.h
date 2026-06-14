@@ -118,6 +118,10 @@ class DocumentSession : public QObject {
   void setReadOnly(bool read_only);
   void setIndexPriority(IndexPriority priority);
   [[nodiscard]] IndexPriority indexPriority() const;
+  void setScrollIndexTarget(std::uint64_t byte_offset);
+  [[nodiscard]] std::size_t estimatedLineForByteOffset(std::uint64_t offset) const;
+  [[nodiscard]] std::uint64_t estimatedByteOffsetForLine(std::size_t line) const;
+  [[nodiscard]] bool isByteOffsetIndexed(std::uint64_t offset) const;
   [[nodiscard]] std::size_t indexedLineCount() const;
   [[nodiscard]] file::ChunkCache::Stats chunkCacheStats() const;
   [[nodiscard]] TextEncoding textEncoding() const;
@@ -227,6 +231,7 @@ class DocumentSession : public QObject {
   bool stop_index_thread_ = false;
   std::uint64_t index_generation_ = 0;
   std::atomic<IndexPriority> index_priority_{IndexPriority::kBackground};
+  std::atomic<std::uint64_t> index_scroll_target_byte_{0};
 };
 
 }  // namespace massiveedit::core

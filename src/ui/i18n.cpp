@@ -144,6 +144,7 @@ const Dict& englishDict() {
       {"about.platform", QStringLiteral("Platform: %1 | Kernel: %2 %3 | CPU: %4")},
       {"prompt.goto", QStringLiteral("Line[:Column] or @Offset:")},
       {"hint.open_file_start", QStringLiteral("Open a file to start.")},
+      {"hint.indexing_scroll_target", QStringLiteral("Indexing this region, please wait...")},
       {"msg.open_failed", QStringLiteral("Open Failed")},
       {"msg.save_failed", QStringLiteral("Save Failed")},
       {"msg.saved", QStringLiteral("Saved.")},
@@ -349,6 +350,7 @@ const Dict& dictFor(Language language) {
       {"about.platform", QStringLiteral("平台：%1 | 内核：%2 %3 | CPU：%4")},
       {"prompt.goto", QStringLiteral("行[:列] 或 @偏移:")},
       {"hint.open_file_start", QStringLiteral("打开文件开始编辑。")},
+      {"hint.indexing_scroll_target", QStringLiteral("正在索引此区域，请稍候...")},
       {"msg.open_failed", QStringLiteral("打开失败")},
       {"msg.save_failed", QStringLiteral("保存失败")},
       {"msg.saved", QStringLiteral("已保存。")},
@@ -477,6 +479,7 @@ const Dict& dictFor(Language language) {
       {"title.performance", QStringLiteral("效能")},
       {"status.ready", QStringLiteral("就緒")},
       {"hint.open_file_start", QStringLiteral("開啟檔案開始編輯。")},
+      {"hint.indexing_scroll_target", QStringLiteral("正在索引此區域，請稍候...")},
   };
 
   static const Dict kJa = {
@@ -523,6 +526,7 @@ const Dict& dictFor(Language language) {
       {"title.performance", QStringLiteral("パフォーマンス")},
       {"status.ready", QStringLiteral("準備完了")},
       {"hint.open_file_start", QStringLiteral("ファイルを開いて開始します。")},
+      {"hint.indexing_scroll_target", QStringLiteral("この領域をインデックス中です。しばらくお待ちください...")},
   };
 
   static const Dict kKo = {
@@ -569,6 +573,7 @@ const Dict& dictFor(Language language) {
       {"title.performance", QStringLiteral("성능")},
       {"status.ready", QStringLiteral("준비됨")},
       {"hint.open_file_start", QStringLiteral("파일을 열어 시작하세요.")},
+      {"hint.indexing_scroll_target", QStringLiteral("이 영역을 인덱싱 중입니다. 잠시만 기다려 주세요...")},
   };
 
   static const Dict kFr = {
@@ -615,6 +620,7 @@ const Dict& dictFor(Language language) {
       {"title.performance", QStringLiteral("Performance")},
       {"status.ready", QStringLiteral("Prêt")},
       {"hint.open_file_start", QStringLiteral("Ouvrez un fichier pour commencer.")},
+      {"hint.indexing_scroll_target", QStringLiteral("Indexation de cette zone, veuillez patienter...")},
   };
 
   switch (language) {

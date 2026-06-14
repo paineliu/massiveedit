@@ -15,14 +15,18 @@ class LineIndexer {
   void reset(std::uint64_t document_size);
   bool ensureLineIndexed(std::size_t line_index,
                          const Reader& reader,
-                         std::size_t chunk_size = 256ULL * 1024);
+                         std::size_t chunk_size = 256ULL * 1024,
+                         std::uint64_t max_scan_bytes = 0);
   bool ensureOffsetIndexed(std::uint64_t offset,
                            const Reader& reader,
-                           std::size_t chunk_size = 256ULL * 1024);
+                           std::size_t chunk_size = 256ULL * 1024,
+                           std::uint64_t max_scan_bytes = 0);
   bool indexNextChunk(const Reader& reader, std::size_t chunk_size = 256ULL * 1024);
   void ensureComplete(const Reader& reader, std::size_t chunk_size = 256ULL * 1024);
 
   [[nodiscard]] bool isComplete() const;
+  [[nodiscard]] bool isOffsetIndexed(std::uint64_t offset) const;
+  [[nodiscard]] std::uint64_t scannedByteOffset() const;
   [[nodiscard]] std::size_t knownLineCount() const;
   [[nodiscard]] std::size_t estimatedLineCount() const;
   [[nodiscard]] std::uint64_t lineStart(std::size_t line) const;

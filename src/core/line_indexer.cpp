@@ -16,7 +16,8 @@ void LineIndexer::reset(std::uint64_t document_size) {
 
 bool LineIndexer::ensureLineIndexed(std::size_t line_index,
                                     const Reader& reader,
-                                    std::size_t chunk_size) {
+                                    std::size_t chunk_size,
+                                    std::uint64_t max_scan_bytes) {
   if (line_starts_.empty()) {
     reset(document_size_);
   }
@@ -27,6 +28,7 @@ bool LineIndexer::ensureLineIndexed(std::size_t line_index,
     return false;
   }
 
+  std::uint64_t scanned_this_call = 0;
   while (!complete_ && line_starts_.size() <= line_index) {
     if (scan_offset_ >= document_size_) {
       complete_ = true;
@@ -48,6 +50,10 @@ bool LineIndexer::ensureLineIndexed(std::size_t line_index,
     }
 
     scan_offset_ += bytes.size();
+    scanned_this_call += static_cast<std::uint64_t>(bytes.size());
+    if (max_scan_bytes > 0 && scanned_this_call >= max_scan_bytes) {
+      break;
+    }
     if (bytes.size() < scan_len) {
       complete_ = true;
     }
@@ -62,7 +68,8 @@ bool LineIndexer::ensureLineIndexed(std::size_t line_index,
 
 bool LineIndexer::ensureOffsetIndexed(std::uint64_t offset,
                                       const Reader& reader,
-                                      std::size_t chunk_size) {
+                                      std::size_t chunk_size,
+                                      std::uint64_t max_scan_bytes) {
   if (line_starts_.empty()) {
     reset(document_size_);
   }
@@ -74,6 +81,7 @@ bool LineIndexer::ensureOffsetIndexed(std::uint64_t offset,
   }
 
   const std::uint64_t target = std::min<std::uint64_t>(offset, document_size_);
+  std::uint64_t scanned_this_call = 0;
   while (!complete_ && scan_offset_ <= target) {
     if (scan_offset_ >= document_size_) {
       complete_ = true;
@@ -95,6 +103,10 @@ bool LineIndexer::ensureOffsetIndexed(std::uint64_t offset,
     }
 
     scan_offset_ += bytes.size();
+    scanned_this_call += static_cast<std::uint64_t>(bytes.size());
+    if (max_scan_bytes > 0 && scanned_this_call >= max_scan_bytes) {
+      break;
+    }
     if (bytes.size() < scan_len) {
       complete_ = true;
     }
@@ -153,6 +165,17 @@ void LineIndexer::ensureComplete(const Reader& reader, std::size_t chunk_size) {
 
 bool LineIndexer::isComplete() const {
   return complete_;
+}
+
+bool LineIndexer::isOffsetIndexed(std::uint64_t offset) const {
+  if (complete_) {
+    return true;
+  }
+  return offset < scan_offset_;
+}
+
+std::uint64_t LineIndexer::scannedByteOffset() const {
+  return scan_offset_;
 }
 
 std::size_t LineIndexer::knownLineCount() const {

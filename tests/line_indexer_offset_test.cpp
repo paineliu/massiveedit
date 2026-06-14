@@ -55,5 +55,19 @@ int main() {
   assert(chunked.knownLineCount() == 1);
   assert(chunked.lineIndexForOffset(static_cast<std::uint64_t>(one_line.size())) == 0);
 
+  static const std::string sparse_newlines(1024 * 1024, 'a');
+  LineIndexer budgeted;
+  budgeted.reset(static_cast<std::uint64_t>(sparse_newlines.size()));
+  auto budget_reader = [](std::uint64_t offset, std::size_t length) {
+    if (offset >= sparse_newlines.size()) {
+      return std::string{};
+    }
+    const std::size_t take = std::min<std::size_t>(length, sparse_newlines.size() - offset);
+    return sparse_newlines.substr(static_cast<std::size_t>(offset), take);
+  };
+  assert(!budgeted.ensureLineIndexed(1, budget_reader, 64 * 1024, 128 * 1024));
+  assert(budgeted.knownLineCount() == 1);
+  assert(!budgeted.isComplete());
+
   return 0;
 }
